@@ -7,10 +7,10 @@
   "framework": "nextjs",
   "env": {
     "NEXT_PUBLIC_SUPABASE_URL": {
-      "description": "Your Supabase project URL (https://xxxxx.supabase.co)"
+      "description": "https://hexojxiclqpjgegepapr.supabase.co"
     },
     "NEXT_PUBLIC_SUPABASE_ANON_KEY": {
-      "description": "Your Supabase anonymous public key"
+      "description": "sb_publishable_WqEl17X2OgmRDCgaHL1Orw_7YM1LL7-"
     }
   },
   "functions": {
@@ -20,5 +20,4 @@
     }
   },
   "regions": ["iad1"],
-  "public": false
 }
