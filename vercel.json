@@ -5,14 +5,7 @@
   "devCommand": "pnpm dev",
   "installCommand": "pnpm install",
   "framework": "nextjs",
-  "env": {
-    "NEXT_PUBLIC_SUPABASE_URL": {
-      "description": "https://hexojxiclqpjgegepapr.supabase.co"
-    },
-    "NEXT_PUBLIC_SUPABASE_ANON_KEY": {
-      "description": "sb_publishable_WqEl17X2OgmRDCgaHL1Orw_7YM1LL7-"
-    }
-  },
+
   "functions": {
     "api/**/*.ts": {
       "memory": 1024,
