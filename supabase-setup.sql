@@ -18,12 +18,20 @@ CREATE TABLE IF NOT EXISTS matches (
   match_date DATE,
   home_score INTEGER,
   away_score INTEGER,
+  home_yellow_cards INTEGER NOT NULL DEFAULT 0,
+  home_red_cards INTEGER NOT NULL DEFAULT 0,
+  away_yellow_cards INTEGER NOT NULL DEFAULT 0,
+  away_red_cards INTEGER NOT NULL DEFAULT 0,
   status TEXT DEFAULT 'pending', -- 'pending', 'completed'
   created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 ALTER TABLE matches ADD COLUMN IF NOT EXISTS match_date DATE;
+ALTER TABLE matches ADD COLUMN IF NOT EXISTS home_yellow_cards INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE matches ADD COLUMN IF NOT EXISTS home_red_cards INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE matches ADD COLUMN IF NOT EXISTS away_yellow_cards INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE matches ADD COLUMN IF NOT EXISTS away_red_cards INTEGER NOT NULL DEFAULT 0;
 
 -- Create indexes
 CREATE INDEX IF NOT EXISTS teams_poule_id_idx ON teams(poule_id);

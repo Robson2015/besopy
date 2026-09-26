@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Trash2 } from 'lucide-react';
-import { getTeams, getMatches, addTeam, deleteTeamsByPoule } from '@/lib/tournament';
+import { getTeams, getMatches, addTeam, deleteTeam, deleteTeamsByPoule } from '@/lib/tournament';
 
 interface Team {
   id: number;
@@ -59,6 +59,7 @@ export default function Poule({ id, name, userId, qualifiedCount, onDelete }: Po
     if (matchesData) setMatches(matchesData);
   };
 
+  const recentCount = Math.max(teams.length - 1, 0);
   const standings: Standing[] = teams
     .map((team) => {
       const standing: Standing = {
@@ -106,7 +107,7 @@ export default function Poule({ id, name, userId, qualifiedCount, onDelete }: Po
         }
       });
 
-      standing.recentResults = standing.recentResults.slice(-5);
+      standing.recentResults = recentCount ? standing.recentResults.slice(-recentCount) : [];
 
       standing.goalDifference = standing.goalsFor - standing.goalsAgainst;
       return standing;
@@ -117,6 +118,22 @@ export default function Poule({ id, name, userId, qualifiedCount, onDelete }: Po
       second.goalsFor - first.goalsFor ||
       first.name.localeCompare(second.name)
     );
+
+  const handleDeleteTeam = async (team: Team) => {
+    if (!window.confirm('Supprimer ' + team.name + ' et tous ses matchs ?')) return;
+    setLoading(true);
+    try {
+      const { error } = await deleteTeam(team.id, userId);
+      if (error) {
+        alert('Impossible de supprimer cette equipe.');
+        return;
+      }
+      setTeams((current) => current.filter((item) => item.id !== team.id));
+      setMatches((current) => current.filter((match) => match.home_team_id !== team.id && match.away_team_id !== team.id));
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleAddTeam = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -176,7 +193,7 @@ export default function Poule({ id, name, userId, qualifiedCount, onDelete }: Po
               <th className="px-2 py-3 text-center font-medium" title="Buts contre">BC</th>
               <th className="px-2 py-3 text-center font-medium" title="Différence de buts">DB</th>
               <th className="px-3 py-3 text-center font-medium">Pts</th>
-              <th className="px-3 py-3 text-center font-medium">5 derniers</th>
+              <th className="px-3 py-3 text-center font-medium">{recentCount} dernier{recentCount === 1 ? "" : "s"}</th>
             </tr>
           </thead>
           <tbody>
@@ -192,6 +209,9 @@ export default function Poule({ id, name, userId, qualifiedCount, onDelete }: Po
                     {index < qualifiedCount && (
                       <span className="shrink-0 text-[10px] font-bold uppercase text-blue-600">Qualifié</span>
                     )}
+                    <button type="button" onClick={() => handleDeleteTeam(team)} disabled={loading} className="ml-auto shrink-0 rounded p-1 text-red-600 transition hover:bg-red-50 disabled:opacity-50" title="Supprimer l'equipe" aria-label={"Supprimer " + team.name}>
+                      <Trash2 size={14} />
+                    </button>
                   </div>
                 </td>
                 <td className="px-2 py-3 text-center font-medium">{team.played}</td>
@@ -204,15 +224,15 @@ export default function Poule({ id, name, userId, qualifiedCount, onDelete }: Po
                 <td className="px-3 py-3 text-center font-bold text-blue-700">{team.points}</td>
                 <td className="px-3 py-3">
                   <div className="flex justify-center gap-1">
-                    {team.recentResults.map((result, resultIndex) => (
+                    {Array.from({ length: recentCount }, (_, resultIndex) => team.recentResults[resultIndex]).map((result, resultIndex) => (
                       <span
                         key={`${team.id}-${resultIndex}`}
-                        title={result === 'win' ? 'Victoire' : result === 'draw' ? 'Nul' : 'Défaite'}
+                        title={result === 'win' ? 'Victoire' : result === 'draw' ? 'Nul' : result === 'loss' ? 'Defaite' : 'Aucun resultat'}
                         className={`flex h-5 w-5 items-center justify-center rounded-full text-[11px] font-bold text-white ${
-                          result === 'win' ? 'bg-green-600' : result === 'draw' ? 'bg-gray-400' : 'bg-red-500'
+                          result === 'win' ? 'bg-green-600' : result === 'draw' ? 'bg-gray-400' : result === 'loss' ? 'bg-red-500' : 'bg-gray-300'
                         }`}
                       >
-                        {result === 'win' ? '✓' : result === 'draw' ? '-' : '×'}
+                        {result === 'win' ? '\u2713' : result === 'draw' ? '-' : result === 'loss' ? '\u00d7' : '\u00b7'}
                       </span>
                     ))}
                   </div>

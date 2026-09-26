@@ -31,6 +31,16 @@ export async function getTeams(poulesId: number) {
   return { data, error };
 }
 
+export async function deleteTeam(teamId: number, userId: string) {
+  const { data, error } = await supabase
+    .from('teams')
+    .delete()
+    .eq('id', teamId)
+    .eq('user_id', userId)
+    .select();
+  return { data, error };
+}
+
 export async function deleteTeamsByPoule(poulesId: number, userId: string) {
   const { data, error } = await supabase
     .from('teams')
@@ -75,6 +85,20 @@ export async function updateMatchScore(matchId: number, homeScore: number, awayS
       away_score: awayScore,
       status: 'completed',
     })
+    .eq('id', matchId)
+    .select();
+  return { data, error };
+}
+
+export async function updateMatchCards(matchId: number, cards: Partial<{
+  home_yellow_cards: number;
+  home_red_cards: number;
+  away_yellow_cards: number;
+  away_red_cards: number;
+}>) {
+  const { data, error } = await supabase
+    .from('matches')
+    .update(cards)
     .eq('id', matchId)
     .select();
   return { data, error };

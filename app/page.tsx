@@ -11,6 +11,7 @@ type Match = {
   created_at?: string;
   id: number; stage: string; match_date: string | null; status: string;
   home_score: number | null; away_score: number | null;
+  home_yellow_cards: number; home_red_cards: number; away_yellow_cards: number; away_red_cards: number;
   home_team_id: number; away_team_id: number;
   home_team?: { id: number; name: string; poule_id: number } | null;
   away_team?: { id: number; name: string; poule_id: number } | null;
@@ -189,15 +190,16 @@ export default function Home() {
               <div className="flex items-center justify-between border-b border-[#edf0eb] px-5 py-4"><h4 className="font-black">Poule {pouleId}</h4><span className="text-xs text-[#718078]">{rows.length} equipes</span></div>
               <div className="overflow-x-auto"><table className="w-full min-w-[1050px] border-collapse text-sm">
                 <thead className="border-y border-[#e1e6ed] bg-white text-xs text-[#354256]">
-                  <tr><th className="px-4 py-3 text-left font-medium">#</th><th className="px-4 py-3 text-left font-medium">Club</th><th className="px-3 py-3 text-center font-medium">MJ</th><th className="px-3 py-3 text-center font-medium">G</th><th className="px-3 py-3 text-center font-medium">N</th><th className="px-3 py-3 text-center font-medium">P</th><th className="px-3 py-3 text-center font-medium">BP</th><th className="px-3 py-3 text-center font-medium">BC</th><th className="px-3 py-3 text-center font-medium">DB</th><th className="px-4 py-3 text-center font-medium">Pts</th><th className="px-4 py-3 text-center font-medium">5 derniers</th></tr>
+                  <tr><th className="px-4 py-3 text-left font-medium">#</th><th className="px-4 py-3 text-left font-medium">Club</th><th className="px-3 py-3 text-center font-medium">MJ</th><th className="px-3 py-3 text-center font-medium">G</th><th className="px-3 py-3 text-center font-medium">N</th><th className="px-3 py-3 text-center font-medium">P</th><th className="px-3 py-3 text-center font-medium">BP</th><th className="px-3 py-3 text-center font-medium">BC</th><th className="px-3 py-3 text-center font-medium">DB</th><th className="px-4 py-3 text-center font-medium">Pts</th><th className="px-4 py-3 text-center font-medium">{Math.max(rows.length - 1, 0)} dernier{rows.length === 2 ? "" : "s"}</th></tr>
                 </thead>
                 <tbody>{rows.map((team, rank) => {
                   const isQualified = rank < qualifiedCount;
+                  const recentCount = Math.max(rows.length - 1, 0);
                   return <tr key={team.id} className={`border-b border-[#edf0f5] ${isQualified ? 'bg-[#f7f9fc]' : 'bg-white'}`}>
                     <td className={`border-l-2 px-4 py-4 ${isQualified ? 'border-l-[#2165ff]' : 'border-l-transparent'}`}>{rank + 1}</td>
                     <td className="px-4 py-4"><div className="flex items-center gap-2.5"><span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-[#e8ebef] text-[10px] font-bold text-[#526174]">{team.name.slice(0, 2).toUpperCase()}</span><span className="font-medium text-[#26354a]">{team.name}</span>{isQualified && <span className="text-[9px] font-bold uppercase text-[#155eef]">Qualifie</span>}</div></td>
                     <td className="px-3 py-4 text-center">{team.played}</td><td className="px-3 py-4 text-center">{team.won}</td><td className="px-3 py-4 text-center">{team.drawn}</td><td className="px-3 py-4 text-center">{team.lost}</td><td className="px-3 py-4 text-center">{team.gf}</td><td className="px-3 py-4 text-center">{team.ga}</td><td className="px-3 py-4 text-center">{team.gf - team.ga > 0 ? '+' : ''}{team.gf - team.ga}</td><td className="px-4 py-4 text-center font-bold text-[#155eef]">{team.points}</td>
-                    <td className="px-4 py-4"><div className="flex justify-center gap-1">{Array.from({ length: 5 }, (_, index) => team.recent.slice(-5)[index]).map((result, index) => <span key={index} title={result === 'win' ? 'Victoire' : result === 'draw' ? 'Match nul' : result === 'loss' ? 'Defaite' : 'Aucun resultat'} className={`grid h-5 w-5 place-items-center rounded-full text-[10px] font-bold text-white ${result === 'win' ? 'bg-[#08a64b]' : result === 'draw' ? 'bg-[#9aa3b2]' : result === 'loss' ? 'bg-[#f33246]' : 'bg-[#e3e7ed]'}`}>{result === 'win' ? '✓' : result === 'draw' ? '−' : result === 'loss' ? '×' : '·'}</span>)}</div></td>
+                    <td className="px-4 py-4"><div className="flex justify-center gap-1">{Array.from({ length: recentCount }, (_, index) => team.recent.slice(-recentCount)[index]).map((result, index) => <span key={index} title={result === 'win' ? 'Victoire' : result === 'draw' ? 'Match nul' : result === 'loss' ? 'Defaite' : 'Aucun resultat'} className={`grid h-5 w-5 place-items-center rounded-full text-[10px] font-bold text-white ${result === 'win' ? 'bg-[#08a64b]' : result === 'draw' ? 'bg-[#9aa3b2]' : result === 'loss' ? 'bg-[#f33246]' : 'bg-[#e3e7ed]'}`}>{result === 'win' ? '✓' : result === 'draw' ? '−' : result === 'loss' ? '×' : '·'}</span>)}</div></td>
                   </tr>;
                 })}</tbody>
               </table></div>
@@ -266,6 +268,11 @@ function PouleMatchSections({ matches }: { matches: Match[] }) {
   return <div className="space-y-7">{[...groups.entries()].sort(([a], [b]) => a - b).map(([pouleId, groupMatches]) => <section key={pouleId}><h4 className="mb-3 text-lg font-bold text-[#27313b]">Poule {pouleId}</h4><div className="grid gap-3 md:grid-cols-2">{groupMatches.map((match) => <MatchCard key={match.id} match={match} />)}</div></section>)}</div>;
 }
 
+function RedCardMark({ count }: { count: number }) {
+  if (!count) return null;
+  return <span title="Carton rouge" aria-label="Carton rouge" className="inline-block h-3 w-2 shrink-0 rotate-[12deg] rounded-[1px] border border-black/20 bg-red-600" />;
+}
+
 function MatchCard({ match }: { match: Match }) {
   const complete = match.status === 'completed';
   const homeWon = complete && match.home_score !== null && match.away_score !== null && match.home_score > match.away_score;
@@ -284,14 +291,14 @@ function MatchCard({ match }: { match: Match }) {
         <div className="grid h-9 grid-cols-[minmax(0,1fr)_38px] items-center gap-2 px-3">
           <div className="flex min-w-0 items-center gap-2.5">
             <span aria-hidden="true" className="grid h-6 w-6 shrink-0 place-items-center rounded-sm bg-white text-[10px] font-black text-[#52616c] shadow-sm">{homeName.slice(0, 1).toUpperCase()}</span>
-            <span className="truncate text-sm">{homeName}</span>
+            <span className="truncate text-sm">{homeName}</span><RedCardMark count={match.home_red_cards || 0} />
           </div>
           <span className={`text-right text-sm ${homeWon ? 'font-bold' : ''}`}>{complete ? match.home_score : '-'}</span>
         </div>
         <div className="grid h-9 grid-cols-[minmax(0,1fr)_38px] items-center gap-2 px-3">
           <div className="flex min-w-0 items-center gap-2.5">
             <span aria-hidden="true" className="grid h-6 w-6 shrink-0 place-items-center rounded-sm bg-white text-[10px] font-black text-[#52616c] shadow-sm">{awayName.slice(0, 1).toUpperCase()}</span>
-            <span className="truncate text-sm">{awayName}</span>
+            <span className="truncate text-sm">{awayName}</span><RedCardMark count={match.away_red_cards || 0} />
           </div>
           <span className={`text-right text-sm ${awayWon ? 'font-bold' : ''}`}>{complete ? match.away_score : '-'}</span>
         </div>

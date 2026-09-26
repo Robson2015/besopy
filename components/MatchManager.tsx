@@ -1,8 +1,8 @@
 'use client';
 
 import { Fragment, useEffect, useRef, useState } from 'react';
-import { Trash2 } from 'lucide-react';
-import { getAllTeams, addMatch, getMatches, updateMatchScore, deleteMatch, deleteMatchesByStage } from '@/lib/tournament';
+import { Minus, Trash2 } from 'lucide-react';
+import { getAllTeams, addMatch, getMatches, updateMatchScore, updateMatchCards, deleteMatch, deleteMatchesByStage } from '@/lib/tournament';
 
 interface Team {
   id: number;
@@ -19,6 +19,10 @@ interface Match {
   match_date: string | null;
   home_score: number | null;
   away_score: number | null;
+  home_yellow_cards: number;
+  home_red_cards: number;
+  away_yellow_cards: number;
+  away_red_cards: number;
   status: string;
   home_team?: { name: string; poule_id: number };
   away_team?: { name: string };
@@ -181,6 +185,18 @@ export default function MatchManager({ stage, title, userId, qualifiedCount = 2,
     }
   };
 
+  const handleCardChange = async (match: Match, field: 'home_yellow_cards' | 'home_red_cards' | 'away_yellow_cards' | 'away_red_cards', change: number) => {
+    const currentCount = match[field] || 0;
+    const count = Math.max(0, currentCount + change);
+    if (count === currentCount) return;
+    const { error } = await updateMatchCards(match.id, { [field]: count });
+    if (error) {
+      alert('Erreur lors de l’enregistrement du carton. Vérifiez que la migration Supabase a été appliquée.');
+      return;
+    }
+    setMatches((current) => current.map((item) => item.id === match.id ? { ...item, [field]: count } : item));
+  };
+
   const handleDeleteMatch = async (matchId: number) => {
     if (!window.confirm('Supprimer ce match ?')) return;
 
@@ -295,14 +311,12 @@ export default function MatchManager({ stage, title, userId, qualifiedCount = 2,
                 )}
                 <div className="rounded border border-gray-200 bg-gray-50 p-3">
                 <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div>
-                    <span className="mr-3 text-sm font-semibold text-gray-600">Match {index + 1}</span>
-                    <span className="font-semibold">
-                      {match.home_team?.name || 'Équipe'} vs {match.away_team?.name || 'Équipe'}
-                    </span>
-                    {match.match_date && (
-                      <span className="ml-3 text-sm text-gray-500">{match.match_date}</span>
-                    )}
+                  <div className="flex min-w-0 flex-wrap items-start gap-x-2 gap-y-1">
+                    <span className="mr-1 text-sm font-semibold text-gray-600">Match {index + 1}</span>
+                    <span className="inline-flex flex-col items-center gap-0.5 text-center font-semibold">{match.home_team?.name || 'Equipe'}<CardControls yellow={match.home_yellow_cards || 0} red={match.home_red_cards || 0} onYellow={(change) => handleCardChange(match, 'home_yellow_cards', change)} onRed={(change) => handleCardChange(match, 'home_red_cards', change)} /></span>
+                    <span className="text-gray-500">vs</span>
+                    <span className="inline-flex flex-col items-center gap-0.5 text-center font-semibold">{match.away_team?.name || 'Equipe'}<CardControls yellow={match.away_yellow_cards || 0} red={match.away_red_cards || 0} onYellow={(change) => handleCardChange(match, 'away_yellow_cards', change)} onRed={(change) => handleCardChange(match, 'away_red_cards', change)} /></span>
+                    {match.match_date && <span className="text-sm text-gray-500">{match.match_date}</span>}
                   </div>
                   {['poules', '16eme', '8eme', 'quart', 'demi', 'finale'].includes(stage) && (editingMatchId === match.id ? (
                     <div className="flex items-center gap-2">
@@ -361,6 +375,18 @@ export default function MatchManager({ stage, title, userId, qualifiedCount = 2,
       </div>
     </div>
   );
+}
+
+function CardControls({ yellow, red, onYellow, onRed }: { yellow: number; red: number; onYellow: (change: number) => void; onRed: (change: number) => void }) {
+  const control = (color: 'yellow' | 'red', count: number, onChange: (change: number) => void) => (
+    <span className="inline-flex items-center gap-0.5">
+      <button type="button" onClick={() => onChange(1)} className="inline-flex items-center gap-1 rounded px-1 py-0.5 text-xs text-gray-600 hover:bg-gray-200" title={'Ajouter un carton ' + (color === 'yellow' ? 'jaune' : 'rouge')} aria-label={'Ajouter un carton ' + (color === 'yellow' ? 'jaune' : 'rouge')}>
+        <span aria-hidden="true" className={'h-3 w-2 rotate-[12deg] rounded-[1px] border border-black/20 ' + (color === 'yellow' ? 'bg-yellow-400' : 'bg-red-600')} />{count}
+      </button>
+      {count > 0 && <button type="button" onClick={() => onChange(-1)} className="rounded p-0.5 text-gray-400 hover:bg-gray-200 hover:text-gray-700" title="Annuler le dernier carton" aria-label="Annuler le dernier carton"><Minus size={12} /></button>}
+    </span>
+  );
+  return <span className="inline-flex items-center gap-1">{control('yellow', yellow, onYellow)}{control('red', red, onRed)}</span>;
 }
 
 function getQualifiedTeamIds(teams: Team[], matches: GroupMatch[], qualifiedCount: number) {
