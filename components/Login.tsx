@@ -1,14 +1,14 @@
 'use client';
 
 import { useState } from 'react';
-import { signIn, signUp } from '@/lib/auth';
+import { signIn } from '@/lib/auth';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 
 export default function Login() {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [isSignUp, setIsSignUp] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -18,16 +18,8 @@ export default function Login() {
     setLoading(true);
 
     try {
-      if (isSignUp) {
-        const { error: signUpError } = await signUp(email, password);
-        if (signUpError) throw signUpError;
-        // Auto sign in after signup
-        const { error: signInError } = await signIn(email, password);
-        if (signInError) throw signInError;
-      } else {
-        const { error: signInError } = await signIn(email, password);
-        if (signInError) throw signInError;
-      }
+      const { error: signInError } = await signIn(email, password);
+      if (signInError) throw signInError;
       router.push('/dashboard');
     } catch (err: any) {
       setError(err.message || 'Une erreur est survenue');
@@ -37,13 +29,15 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-600 to-blue-800 flex items-center justify-center p-4">
-      <div className="bg-white rounded-lg shadow-2xl p-8 w-full max-w-md">
+    <div className="relative flex min-h-screen items-center justify-center bg-cover bg-center p-4" style={{ backgroundImage: "url('/foot-02.jpg')" }}>
+      <div aria-hidden="true" className="absolute inset-0 bg-[#071b20]/65" />
+      <div className="relative z-10 w-full max-w-md rounded-lg bg-white p-8 shadow-2xl">
+          <Image src="/eem.jpg" alt="" width={100} height={100} className="rounded-full object-cover m-auto" />
         <h1 className="text-3xl font-bold text-center text-gray-800 mb-2">
-          Gestionnaire de Tournoi
+          Tournoi Besopy Football
         </h1>
         <p className="text-center text-gray-600 mb-6">
-          {isSignUp ? 'Créer un compte' : 'Se connecter'}
+         On peut se connecter ici pour le gestion du tournoi. Demande a l'admin pour l'acces 
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -86,22 +80,11 @@ export default function Login() {
             disabled={loading}
             className="w-full bg-blue-600 text-white py-2 rounded-lg font-semibold hover:bg-blue-700 transition disabled:opacity-50"
           >
-            {loading ? 'Chargement...' : isSignUp ? 'S&apos;inscrire' : 'Se connecter'}
+            {loading ? 'Chargement...' : 'Se connecter'}
           </button>
         </form>
 
-        <div className="mt-6 text-center">
-          <p className="text-gray-600 mb-2">
-            {isSignUp ? 'Vous avez déjà un compte ?' : 'Pas encore de compte ?'}
-          </p>
-          <button
-            type="button"
-            onClick={() => setIsSignUp(!isSignUp)}
-            className="text-blue-600 font-semibold hover:underline"
-          >
-            {isSignUp ? 'Se connecter' : 'S&apos;inscrire'}
-          </button>
-        </div>
+
       </div>
     </div>
   );

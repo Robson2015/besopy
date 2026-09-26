@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { Trophy } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
@@ -121,14 +122,15 @@ export default function Home() {
       <header className="border-b border-[#dfe5dc] bg-[#fbfcf9]">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-5 lg:px-8">
           <Link href="/" className="flex items-center gap-3">
-            <span className="grid h-11 w-11 place-items-center rounded-2xl bg-[#173f35] text-lg font-black text-white">T</span>
-            <span><span className="block text-lg font-black tracking-tight">TOURNOI</span><span className="text-xs uppercase tracking-[0.2em] text-[#68776f]">Live scoreboard</span></span>
+          <Image src="/eem.jpg" alt="" width={100} height={100} className="rounded-full object-cover" />
+            <span className="flex items-center gap-2 rounded-2xl bg-[#06096c] p-3 text-lg font-black text-white">Besopy</span>
+            <span><span className="block text-lg font-black tracking-tight">TOURNOI</span><span className="text-xs uppercase tracking-[0.2em] text-[#68776f]">Foot ball</span></span>
           </Link>
-          <Link href="/login" className="rounded-full border border-[#cbd5ca] px-5 py-2.5 text-sm font-bold transition hover:bg-white">Espace organisateur <span aria-hidden="true">-&gt;</span></Link>
+          <Link href="/login" className="rounded-full border border-[#cbd5ca] px-5 py-2.5 text-sm font-bold transition hover:bg-white">Espace organisateur </Link>
         </div>
       </header>
 
-      <section className="relative overflow-hidden bg-[#173f35] text-white">
+      <section className="relative overflow-hidden bg-[#173f35] bg-cover bg-center text-white" style={{ backgroundImage: "url('/foot.jpg')" }}>
         <div className="absolute -right-24 -top-40 h-[30rem] w-[30rem] rounded-full border border-white/10" />
         <div className="absolute -right-8 -top-24 h-[22rem] w-[22rem] rounded-full border border-white/10" />
         <div className="mx-auto grid max-w-7xl gap-10 px-5 py-16 lg:grid-cols-[1.1fr_0.9fr] lg:items-end lg:px-8 lg:py-24">

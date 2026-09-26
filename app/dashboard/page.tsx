@@ -143,7 +143,7 @@ export default function Dashboard() {
                   : 'border-transparent text-gray-600 hover:text-gray-800'
               }`}
             >
-              📊 Poules
+               Poules
             </button>
             <button
               onClick={() => setActiveTab('poules-matchs')}
@@ -181,7 +181,7 @@ export default function Dashboard() {
                   : 'border-transparent text-gray-600 hover:text-gray-800'
               }`}
             >
-              ⚔️ Quart de Finale
+               Quart de Finale
             </button>
             <button
               onClick={() => setActiveTab('demi')}
@@ -191,7 +191,7 @@ export default function Dashboard() {
                   : 'border-transparent text-gray-600 hover:text-gray-800'
               }`}
             >
-              🏆 Demi-Finale
+              Demi-Finale
             </button>
             <button
               onClick={() => setActiveTab('finale')}
@@ -201,7 +201,7 @@ export default function Dashboard() {
                   : 'border-transparent text-gray-600 hover:text-gray-800'
               }`}
             >
-              👑 Finale
+              Finale
             </button>
           </nav>
         </div>
