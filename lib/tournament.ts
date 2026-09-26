@@ -1,10 +1,10 @@
 import { supabase } from './supabase';
 
 export const POULES = [
-  { id: 1, name: 'Poule 1', teams: 5 },
-  { id: 2, name: 'Poule 2', teams: 6 },
-  { id: 3, name: 'Poule 3', teams: 6 },
-  { id: 4, name: 'Poule 4', teams: 6 },
+  { id: 1, name: 'Poule 1' },
+  { id: 2, name: 'Poule 2' },
+  { id: 3, name: 'Poule 3' },
+  { id: 4, name: 'Poule 4' },
 ];
 
 export async function addTeam(poulesId: number, name: string, userId: string) {
@@ -31,6 +31,16 @@ export async function getTeams(poulesId: number) {
   return { data, error };
 }
 
+export async function deleteTeamsByPoule(poulesId: number, userId: string) {
+  const { data, error } = await supabase
+    .from('teams')
+    .delete()
+    .eq('poule_id', poulesId)
+    .eq('user_id', userId)
+    .select();
+  return { data, error };
+}
+
 export async function getAllTeams() {
   const { data, error } = await supabase
     .from('teams')
@@ -39,7 +49,7 @@ export async function getAllTeams() {
   return { data, error };
 }
 
-export async function addMatch(homeTeamId: number, awayTeamId: number, stage: string) {
+export async function addMatch(homeTeamId: number, awayTeamId: number, stage: string, matchDate?: string) {
   const { data, error } = await supabase
     .from('matches')
     .insert([
@@ -47,6 +57,7 @@ export async function addMatch(homeTeamId: number, awayTeamId: number, stage: st
         home_team_id: homeTeamId,
         away_team_id: awayTeamId,
         stage,
+        match_date: matchDate || null,
         home_score: null,
         away_score: null,
         status: 'pending',
@@ -69,13 +80,31 @@ export async function updateMatchScore(matchId: number, homeScore: number, awayS
   return { data, error };
 }
 
+export async function deleteMatch(matchId: number) {
+  const { data, error } = await supabase
+    .from('matches')
+    .delete()
+    .eq('id', matchId)
+    .select();
+  return { data, error };
+}
+
+export async function deleteMatchesByStage(stage: string) {
+  const { data, error } = await supabase
+    .from('matches')
+    .delete()
+    .eq('stage', stage)
+    .select();
+  return { data, error };
+}
+
 export async function getMatches(stage: string) {
   const { data, error } = await supabase
     .from('matches')
     .select(`
       *,
-      home_team:teams(id, name, poule_id),
-      away_team:teams(id, name, poule_id)
+      home_team:teams!matches_home_team_id_fkey(id, name, poule_id),
+      away_team:teams!matches_away_team_id_fkey(id, name, poule_id)
     `)
     .eq('stage', stage)
     .order('created_at', { ascending: true });
