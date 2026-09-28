@@ -121,13 +121,13 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-[#f6f7f4] text-[#18231f]">
       <header className="border-b border-[#dfe5dc] bg-[#fbfcf9]">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-5 lg:px-8">
+        <div className="mx-auto flex max-w-7xl flex-col items-stretch gap-2 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:gap-0 sm:py-5 lg:px-8">
           <Link href="/" className="flex items-center gap-3">
           <Image src="/eem.jpg" alt="" width={100} height={100} className="rounded-full object-cover" />
             <span className="flex items-center gap-2 rounded-2xl bg-[#06096c] p-3 text-lg font-black text-white">Besopy</span>
             <span><span className="block text-lg font-black tracking-tight">TOURNOI</span><span className="text-xs uppercase tracking-[0.2em] text-[#68776f]">Foot ball</span></span>
           </Link>
-          <Link href="/login" className="rounded-full border border-[#cbd5ca] px-5 py-2.5 text-sm font-bold transition hover:bg-white">Espace organisateur </Link>
+          <Link href="/login" className="w-full rounded-full border border-[#cbd5ca] px-5 py-2.5 text-center text-sm font-bold transition hover:bg-white sm:w-auto">Espace organisateur </Link>
         </div>
       </header>
 
