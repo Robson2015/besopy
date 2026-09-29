@@ -155,20 +155,37 @@ export default function Dashboard() {
             >
               Matchs de Poules
             </button>
-            <button
-              onClick={() => setActiveTab(startingPhase)}
-              className={`py-4 px-2 font-semibold border-b-2 transition ${
-                activeTab === startingPhase
-                  ? 'border-blue-600 text-blue-600'
-                  : 'border-transparent text-gray-600 hover:text-gray-800'
-              }`}
-            >
-              {startingPhase === '16eme' ? '16eme de Finale' : startingPhase === '8eme' ? '8eme de Finale' : 'Quart de Finale'}
-            </button>
-            {startingPhase === '16eme' && (
+            {startingPhase === '16eme' ? (
+              <>
+                <button
+                  onClick={() => setActiveTab('16eme')}
+                  className={`py-4 px-2 font-semibold border-b-2 transition ${
+                    activeTab === '16eme'
+                      ? 'border-blue-600 text-blue-600'
+                      : 'border-transparent text-gray-600 hover:text-gray-800'
+                  }`}
+                >
+                  16eme de Finale
+                </button>
+                <button
+                  onClick={() => setActiveTab('8eme')}
+                  className={`py-4 px-2 font-semibold border-b-2 transition ${
+                    activeTab === '8eme'
+                      ? 'border-blue-600 text-blue-600'
+                      : 'border-transparent text-gray-600 hover:text-gray-800'
+                  }`}
+                >
+                  8eme de Finale
+                </button>
+              </>
+            ) : (
               <button
                 onClick={() => setActiveTab('8eme')}
-                className="py-4 px-2 font-semibold border-b-2 transition"
+                className={`py-4 px-2 font-semibold border-b-2 transition ${
+                  activeTab === '8eme'
+                    ? 'border-blue-600 text-blue-600'
+                    : 'border-transparent text-gray-600 hover:text-gray-800'
+                }`}
               >
                 8eme de Finale
               </button>

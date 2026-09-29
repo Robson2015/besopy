@@ -116,6 +116,7 @@ export default function Home() {
 
   const visiblePhases = phases.filter((phase) => phase.id !== '16eme' || show16eme);
   const completedMatches = matches.filter((match) => match.status === 'completed').length;
+  const pouleMatches = matches.filter((match) => match.stage === 'poules');
   const currentPhase = [...phases].reverse().find((phase) => matches.some((match) => match.stage === phase.id))?.label || (teams.length ? 'Phase de poules' : 'En attente du tournoi');
 
   return (
@@ -209,9 +210,9 @@ export default function Home() {
 
         {activeTab === 'matchs' && (
           <section>
-            <div className="mb-5 flex flex-wrap items-end justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-[0.2em] text-[#718078]">Calendrier complet</p><h3 className="mt-2 text-2xl font-black">Tous les matchs</h3></div><span className="rounded-full bg-[#e8eee4] px-4 py-2 text-sm font-semibold text-[#43564a]">{matches.length} matchs</span></div>
+            <div className="mb-5 flex flex-wrap items-end justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-[0.2em] text-[#718078]">Calendrier de la phase</p><h3 className="mt-2 text-2xl font-black">Matchs de poules</h3></div><span className="rounded-full bg-[#e8eee4] px-4 py-2 text-sm font-semibold text-[#43564a]">{pouleMatches.length} matchs</span></div>
             {error && <p className="mb-4 rounded-xl bg-red-50 p-4 text-sm text-red-700">{error}</p>}
-            {loading ? <SectionSkeleton rows={4} /> : matches.length === 0 ? <PanelMessage>Aucun match programme pour le moment.</PanelMessage> : <div className="space-y-8">{matches.some((match) => match.stage === 'poules') && <section><h4 className="mb-4 text-lg font-bold">Phase de poules</h4><PouleMatchSections matches={matches.filter((match) => match.stage === 'poules')} /></section>}{phases.filter((phase) => phase.id !== 'poules' && visiblePhases.some((item) => item.id === phase.id)).map((phase) => {const phaseMatches = matches.filter((match) => match.stage === phase.id);return phaseMatches.length ? <section key={phase.id}><h4 className="mb-4 text-lg font-bold">{phase.label}</h4><div className="grid gap-3 md:grid-cols-2">{phaseMatches.map((match) => <MatchCard key={match.id} match={match} />)}</div></section> : null})}</div>}
+            {loading ? <SectionSkeleton rows={4} /> : pouleMatches.length === 0 ? <PanelMessage>Aucun match de poules programme pour le moment.</PanelMessage> : <div className="space-y-8"><section><h4 className="mb-4 text-lg font-bold">Phase de poules</h4><PouleMatchSections matches={pouleMatches} /></section></div>}
           </section>
         )}
 
@@ -220,7 +221,7 @@ export default function Home() {
             {loading && <SectionSkeleton rows={6} />}
             <div className={loading ? 'hidden' : ''}>
             <div className="mb-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {visiblePhases.map((phase, index) => {
+              {visiblePhases.filter((phase) => phase.id !== 'poules').map((phase, index) => {
                 const phaseMatches = matches.filter((match) => match.stage === phase.id);
                 const done = phaseMatches.filter((match) => match.status === 'completed').length;
                 return <a key={phase.id} href={`#phase-${phase.id}`} className="group flex items-center gap-4 rounded-2xl border border-[#e1e7df] bg-white p-4 transition hover:-translate-y-0.5 hover:border-[#a8b99f] hover:shadow-sm">
