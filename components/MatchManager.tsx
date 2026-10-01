@@ -346,11 +346,24 @@ export default function MatchManager({ stage, title, userId, qualifiedCount = 2,
                   <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
                     <div className="grid min-w-0 flex-1 grid-cols-[auto_minmax(0,1fr)_auto_auto_auto_minmax(0,1fr)] items-center gap-2 text-sm">
                       <span className="font-semibold text-gray-600">Match {index + 1}</span>
-                      <span className="truncate text-right font-medium text-gray-800">{match.home_team?.name || 'Equipe'}</span>
-                      <span className="font-bold text-gray-900">{match.status === 'completed' ? match.home_score : '-'}</span>
-                      <span className="text-gray-500">vs</span>
-                      <span className="font-bold text-gray-900">{match.status === 'completed' ? match.away_score : '-'}</span>
-                      <span className="truncate font-medium text-gray-800">{match.away_team?.name || 'Equipe'}</span>
+                       <div className="flex flex-col gap-1">
+                        <div className="flex items-center justify-center gap-2">
+                          <span className="truncate text-right font-medium text-gray-800">{match.home_team?.name || 'Equipe'}</span>
+                          <span className="font-bold text-gray-900">{match.status === 'completed' ? match.home_score : '-'}</span>
+                          <span className="text-gray-500">vs</span>
+                          <span className="font-bold text-gray-900">{match.status === 'completed' ? match.away_score : '-'}</span>
+                          <span className="truncate font-medium text-gray-800">{match.away_team?.name || 'Equipe'}</span>
+                      </div>
+                      
+                  <div className="mt-0.5 grid grid-cols-2 items-center gap-x-4 text-xs text-gray-600">
+                    <div className="flex items-center justify-end gap-2">
+                      <CardControls yellow={match.home_yellow_cards || 0} red={match.home_red_cards || 0} onYellow={(change) => handleCardChange(match, 'home_yellow_cards', change)} onRed={(change) => handleCardChange(match, 'home_red_cards', change)} />
+                    </div>
+                    <div className="flex items-center justify-start gap-2">
+                      <CardControls yellow={match.away_yellow_cards || 0} red={match.away_red_cards || 0} onYellow={(change) => handleCardChange(match, 'away_yellow_cards', change)} onRed={(change) => handleCardChange(match, 'away_red_cards', change)} />
+                    </div>
+                  </div>
+                      </div>
                     </div>
                     {['poules', '16eme', '8eme', 'quart', 'demi', 'finale'].includes(stage) && (editingMatchId === match.id ? (
                       <div className="flex items-center gap-2">
@@ -400,10 +413,6 @@ export default function MatchManager({ stage, title, userId, qualifiedCount = 2,
                   <div className="mt-1 flex flex-wrap items-center gap-x-3 text-xs text-gray-600">
                     {match.terrain && <span className="font-medium">Terrain : {match.terrain}</span>}
                     {match.match_date && <span>{match.match_date}</span>}
-                  </div>
-                  <div className="mt-0.5 grid grid-cols-2 gap-x-4 text-xs text-gray-600">
-                    <div><CardControls yellow={match.home_yellow_cards || 0} red={match.home_red_cards || 0} onYellow={(change) => handleCardChange(match, 'home_yellow_cards', change)} onRed={(change) => handleCardChange(match, 'home_red_cards', change)} /></div>
-                    <div><CardControls yellow={match.away_yellow_cards || 0} red={match.away_red_cards || 0} onYellow={(change) => handleCardChange(match, 'away_yellow_cards', change)} onRed={(change) => handleCardChange(match, 'away_red_cards', change)} /></div>
                   </div>
                 </div>
               </Fragment>
