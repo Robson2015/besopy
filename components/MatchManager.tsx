@@ -348,23 +348,33 @@ export default function MatchManager({ stage, title, userId, qualifiedCount = 2,
                       <span className="font-semibold text-gray-600">Match {index + 1}</span>
                        <div className="flex flex-col gap-1">
                         <div className="flex items-center justify-center gap-2">
-                          <span className="truncate text-right font-medium text-gray-800">{match.home_team?.name || 'Equipe'}</span>
-                          <span className="font-bold text-gray-900">{match.status === 'completed' ? match.home_score : '-'}</span>
-                          <span className="text-gray-500">vs</span>
-                          <span className="font-bold text-gray-900">{match.status === 'completed' ? match.away_score : '-'}</span>
-                          <span className="truncate font-medium text-gray-800">{match.away_team?.name || 'Equipe'}</span>
+                          <div className="flex flex-col items-center justify-end ">
+                            <div className="flex items-center justify-end gap-2">
+                              <span className="truncate text-right font-medium text-gray-800">{match.home_team?.name || 'Equipe'} </span>
+                              <span className="font-bold text-gray-900"> {match.status === 'completed' ? match.home_score : '-'} </span>
+                            </div>
+                            <div className="flex items-center justify-end gap-2">
+                              <CardControls yellow={match.home_yellow_cards || 0} red={match.home_red_cards || 0} onYellow={(change) => handleCardChange(match, 'home_yellow_cards', change)} onRed={(change) => handleCardChange(match, 'home_red_cards', change)} />
+                            </div>
+                          </div>
+                          <span className="text-gray-500"> vs </span>
+                          <div className="flex flex-col items-center justify-start">
+                            <div className="flex items-center justify-end gap-2">
+                            <span className="font-bold text-gray-900"> {match.status === 'completed' ? match.away_score : '-'} </span>
+                            <span className="truncate font-medium text-gray-800"> {match.away_team?.name || 'Equipe'} </span>
+                            </div>
+                           <div className="flex items-center justify-start gap-2">
+                            <CardControls yellow={match.away_yellow_cards || 0} red={match.away_red_cards || 0} onYellow={(change) => handleCardChange(match, 'away_yellow_cards', change)} onRed={(change) => handleCardChange(match, 'away_red_cards', change)} />
+                          </div>
+                          </div>
                       </div>
                       
-                  <div className="mt-0.5 grid grid-cols-2 items-center gap-x-4 text-xs text-gray-600">
-                    <div className="flex items-center justify-end gap-2">
-                      <CardControls yellow={match.home_yellow_cards || 0} red={match.home_red_cards || 0} onYellow={(change) => handleCardChange(match, 'home_yellow_cards', change)} onRed={(change) => handleCardChange(match, 'home_red_cards', change)} />
+                     </div>
                     </div>
-                    <div className="flex items-center justify-start gap-2">
-                      <CardControls yellow={match.away_yellow_cards || 0} red={match.away_red_cards || 0} onYellow={(change) => handleCardChange(match, 'away_yellow_cards', change)} onRed={(change) => handleCardChange(match, 'away_red_cards', change)} />
-                    </div>
+                     <div className="flex flex-wrap items-center gap-x-3 text-xs text-gray-600">
+                    {match.terrain && <span className="font-medium">Terrain : {match.terrain}</span>}
+                    {match.match_date && <span>{match.match_date}</span>}
                   </div>
-                      </div>
-                    </div>
                     {['poules', '16eme', '8eme', 'quart', 'demi', 'finale'].includes(stage) && (editingMatchId === match.id ? (
                       <div className="flex items-center gap-2">
                         <input
@@ -410,10 +420,7 @@ export default function MatchManager({ stage, title, userId, qualifiedCount = 2,
                       </div>
                     ))}
                   </div>
-                  <div className="mt-1 flex flex-wrap items-center gap-x-3 text-xs text-gray-600">
-                    {match.terrain && <span className="font-medium">Terrain : {match.terrain}</span>}
-                    {match.match_date && <span>{match.match_date}</span>}
-                  </div>
+                 
                 </div>
               </Fragment>
             ))}
