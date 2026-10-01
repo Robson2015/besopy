@@ -9,7 +9,7 @@ import { supabase } from '@/lib/supabase';
 type Team = { id: number; name: string; poule_id: number };
 type Match = {
   created_at?: string;
-  id: number; stage: string; match_date: string | null; status: string;
+  id: number; stage: string; match_date: string | null; terrain: string | null; status: string;
   home_score: number | null; away_score: number | null;
   home_yellow_cards: number; home_red_cards: number; away_yellow_cards: number; away_red_cards: number;
   home_team_id: number; away_team_id: number;
@@ -35,6 +35,7 @@ export default function Home() {
   const [show16eme, setShow16eme] = useState(false);
   const [activeTab, setActiveTab] = useState('classement');
   const [qualifiedCount, setQualifiedCount] = useState(4);
+  const [pouleTerrains, setPouleTerrains] = useState<Record<number, string>>({});
 
   useEffect(() => {
     let cancelled = false;
@@ -46,7 +47,9 @@ export default function Home() {
       } catch {
         pouleCount = 4;
       }
-      const { data } = await supabase.from('tournament_settings').select('qualified_count').eq('id', 1).maybeSingle();
+      const { data } = await supabase.from('tournament_settings').select('qualified_count, poule_terrains').eq('id', 1).maybeSingle();
+      const terrains = data?.poule_terrains;
+      if (!cancelled && terrains && typeof terrains === 'object') setPouleTerrains(terrains);
       const localValue = Number(window.localStorage.getItem('tournament-qualified-count') || 4);
       const count = Number(data?.qualified_count ?? localValue);
       if (!cancelled && [2, 3, 4].includes(count)) {
@@ -83,6 +86,10 @@ export default function Home() {
           return;
         }
         setMatches((matchRows || []) as Match[]);
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'tournament_settings' }, async () => {
+        const { data } = await supabase.from('tournament_settings').select('poule_terrains').eq('id', 1).maybeSingle();
+        if (data?.poule_terrains && typeof data.poule_terrains === 'object') setPouleTerrains(data.poule_terrains);
       })
       .subscribe();
 
@@ -212,7 +219,7 @@ export default function Home() {
           <section>
             <div className="mb-5 flex flex-wrap items-end justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-[0.2em] text-[#718078]">Calendrier de la phase</p><h3 className="mt-2 text-2xl font-black">Matchs de poules</h3></div><span className="rounded-full bg-[#e8eee4] px-4 py-2 text-sm font-semibold text-[#43564a]">{pouleMatches.length} matchs</span></div>
             {error && <p className="mb-4 rounded-xl bg-red-50 p-4 text-sm text-red-700">{error}</p>}
-            {loading ? <SectionSkeleton rows={4} /> : pouleMatches.length === 0 ? <PanelMessage>Aucun match de poules programme pour le moment.</PanelMessage> : <div className="space-y-8"><section><h4 className="mb-4 text-lg font-bold">Phase de poules</h4><PouleMatchSections matches={pouleMatches} /></section></div>}
+            {loading ? <SectionSkeleton rows={4} /> : pouleMatches.length === 0 ? <PanelMessage>Aucun match de poules programme pour le moment.</PanelMessage> : <div className="space-y-8"><section><h4 className="mb-4 text-lg font-bold">Phase de poules</h4><PouleMatchSections matches={pouleMatches} terrains={pouleTerrains} /></section></div>}
           </section>
         )}
 
@@ -234,7 +241,7 @@ export default function Home() {
               const phaseMatches = matches.filter((match) => match.stage === phase.id);
               return <section key={phase.id} id={`phase-${phase.id}`} className="scroll-mt-8 border-t border-[#e1e7df] py-8">
                 <div className="mb-5 flex items-end justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-[0.2em] text-[#718078]">Phase {String(index + 1).padStart(2, '0')}</p><h3 className="mt-2 text-2xl font-black">{phase.label}</h3></div><span className="rounded-full bg-white px-3 py-1.5 text-xs font-bold text-[#56675c]">{phaseMatches.length} matchs</span></div>
-                {phaseMatches.length === 0 ? <PanelMessage>Aucun match enregistre pour cette phase.</PanelMessage> : phase.id === 'poules' ? <PouleMatchSections matches={phaseMatches} /> : <div className="grid gap-3 md:grid-cols-2">{phaseMatches.map((match) => <MatchCard key={match.id} match={match} />)}</div>}
+                {phaseMatches.length === 0 ? <PanelMessage>Aucun match enregistre pour cette phase.</PanelMessage> : phase.id === 'poules' ? <PouleMatchSections matches={phaseMatches} terrains={pouleTerrains} /> : <div className="grid gap-3 md:grid-cols-2">{phaseMatches.map((match) => <MatchCard key={match.id} match={match} />)}</div>}
               </section>;
             })}
             </div>
@@ -258,7 +265,7 @@ function PanelMessage({ children }: { children: React.ReactNode }) {
   return <div className="rounded-2xl border border-dashed border-[#d7dfd4] bg-white/70 px-5 py-8 text-center text-sm text-[#718078]">{children}</div>;
 }
 
-function PouleMatchSections({ matches }: { matches: Match[] }) {
+function PouleMatchSections({ matches, terrains }: { matches: Match[]; terrains: Record<number, string> }) {
   const groups = new Map<number, Match[]>();
   matches.forEach((match) => {
     const pouleId = match.home_team?.poule_id || 0;
@@ -266,7 +273,7 @@ function PouleMatchSections({ matches }: { matches: Match[] }) {
     group.push(match);
     groups.set(pouleId, group);
   });
-  return <div className="space-y-7">{[...groups.entries()].sort(([a], [b]) => a - b).map(([pouleId, groupMatches]) => <section key={pouleId}><h4 className="mb-3 text-lg font-bold text-[#27313b]">Poule {pouleId}</h4><div className="grid gap-3 md:grid-cols-2">{groupMatches.map((match) => <MatchCard key={match.id} match={match} />)}</div></section>)}</div>;
+  return <div className="space-y-7">{[...groups.entries()].sort(([a], [b]) => a - b).map(([pouleId, groupMatches]) => <section key={pouleId}><div className="mb-3 flex flex-wrap items-center justify-between gap-2"><h4 className="text-lg font-bold text-[#27313b]">Poule {pouleId}</h4>{terrains[pouleId] && <span className="text-sm font-medium text-[#56616b]">Terrain : {terrains[pouleId]}</span>}</div><div className="grid gap-3 md:grid-cols-2">{groupMatches.map((match) => <MatchCard key={match.id} match={match} />)}</div></section>)}</div>;
 }
 
 function RedCardMark({ count }: { count: number }) {
@@ -306,7 +313,7 @@ function MatchCard({ match }: { match: Match }) {
       </div>
       <div className="flex flex-col items-center justify-center border-l border-[#c5cbcd] px-2 text-center">
         <span className="text-xs font-medium">{complete ? 'Termine' : 'A jouer'}</span>
-        <span className="mt-1 text-xs text-[#56616b]">{dateLabel}</span>
+        <span className="mt-1 text-xs text-[#56616b]">{dateLabel}</span>{match.terrain && <span className="mt-1 text-xs font-medium text-[#56616b]">Terrain : {match.terrain}</span>}
       </div>
 
     </article>

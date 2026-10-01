@@ -15,6 +15,7 @@ export default function Dashboard() {
   const [activeTab, setActiveTab] = useState('poules');
   const [loading, setLoading] = useState(true);
   const [poules, setPoules] = useState(POULES);
+  const [pouleTerrains, setPouleTerrains] = useState<Record<number, string>>({});
   const [newPouleName, setNewPouleName] = useState('');
   const [qualifiedCount, setQualifiedCount] = useState(4);
   const [savedQualifiedCount, setSavedQualifiedCount] = useState(4);
@@ -51,7 +52,9 @@ export default function Dashboard() {
   useEffect(() => {
     let cancelled = false;
     const loadQualificationSetting = async () => {
-      const { data } = await supabase.from('tournament_settings').select('qualified_count').eq('id', 1).maybeSingle();
+      const { data } = await supabase.from('tournament_settings').select('qualified_count, poule_terrains').eq('id', 1).maybeSingle();
+      const terrains = data?.poule_terrains;
+      if (!cancelled && terrains && typeof terrains === 'object') setPouleTerrains(terrains);
       const localValue = Number(window.localStorage.getItem('tournament-qualified-count') || 4);
       const count = Number(data?.qualified_count ?? localValue);
       if (!cancelled && [2, 3, 4].includes(count)) {
@@ -107,6 +110,19 @@ export default function Dashboard() {
     setQualificationDirty(false);
   };
 
+  const handleSavePouleTerrain = async (pouleId: number, terrain: string) => {
+    const updatedTerrains = { ...pouleTerrains, [pouleId]: terrain };
+    const { error } = await supabase.from('tournament_settings').upsert({
+      id: 1,
+      qualified_count: savedQualifiedCount,
+      poule_terrains: updatedTerrains,
+    });
+    if (error) {
+      alert('Impossible d enregistrer le terrain de la poule. Verifiez que la migration Supabase a ete appliquee.');
+      return;
+    }
+    setPouleTerrains(updatedTerrains);
+  };
   const handleDeletePoule = (pouleId: number) => {
     const updatedPoules = poules.filter((poule) => poule.id !== pouleId);
     setPoules(updatedPoules);
@@ -278,6 +294,8 @@ export default function Dashboard() {
                   name={poule.name}
                   userId={user.id}
                   qualifiedCount={qualifiedCount}
+                  terrain={pouleTerrains[poule.id] || ''}
+                  onSaveTerrain={handleSavePouleTerrain}
                   onDelete={handleDeletePoule}
                 />
               ))}

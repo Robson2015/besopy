@@ -17,6 +17,7 @@ interface Match {
   away_team_id: number;
   stage: string;
   match_date: string | null;
+  terrain: string | null;
   home_score: number | null;
   away_score: number | null;
   home_yellow_cards: number;
@@ -51,6 +52,7 @@ export default function MatchManager({ stage, title, userId, qualifiedCount = 2,
   const [homeTeamId, setHomeTeamId] = useState('');
   const [awayTeamId, setAwayTeamId] = useState('');
   const [matchDate, setMatchDate] = useState('');
+  const [matchTerrain, setMatchTerrain] = useState('');
   const [editingMatchId, setEditingMatchId] = useState<number | null>(null);
   const [scores, setScores] = useState({ home: '', away: '' });
   const [loading, setLoading] = useState(false);
@@ -102,6 +104,7 @@ export default function MatchManager({ stage, title, userId, qualifiedCount = 2,
         }
       }
 
+      let nextStageTeamIds: number[] | null = null;
       if (initialPhase && teamsData) {
         const { data: groupMatches } = await getMatches('poules');
         if (groupMatches) {
@@ -111,12 +114,22 @@ export default function MatchManager({ stage, title, userId, qualifiedCount = 2,
         const previousStage = stage === '8eme' ? '16eme' : stage === 'quart' ? '8eme' : stage === 'demi' ? 'quart' : 'demi';
         const { data: previousPhaseMatches } = await getMatches(previousStage);
         if (previousPhaseMatches) {
-          setQualifiedTeamIds(getWinningTeamIds(previousPhaseMatches.filter((match: Match) => ownedTeamIds.has(match.home_team_id) && ownedTeamIds.has(match.away_team_id))));
+          nextStageTeamIds = getWinningTeamIds(previousPhaseMatches.filter((match: Match) => ownedTeamIds.has(match.home_team_id) && ownedTeamIds.has(match.away_team_id)));
+          setQualifiedTeamIds(nextStageTeamIds);
         } else {
           setQualifiedTeamIds([]);
         }
       } else {
         setQualifiedTeamIds(null);
+      }
+
+      if (stage === 'finale' && nextStageTeamIds?.length === 2) {
+        const { data: existingFinals } = await getMatches(stage);
+        const hasFinal = (existingFinals || []).some((match: Match) => ownedTeamIds.has(match.home_team_id) && ownedTeamIds.has(match.away_team_id));
+        if (!hasFinal) {
+          const { error } = await addMatch(nextStageTeamIds[0], nextStageTeamIds[1], stage);
+          if (error) console.error('Unable to create final match automatically', error);
+        }
       }
 
       const { data: matchesData } = await getMatches(stage);
@@ -136,6 +149,13 @@ export default function MatchManager({ stage, title, userId, qualifiedCount = 2,
   const selectableTeams = qualifiedTeamIds
     ? teams.filter((team) => qualifiedTeamIds.includes(team.id))
     : teams;
+  const preventTeamReuse = stage === '8eme' || stage === 'quart' || stage === 'demi';
+  const assignedTeamIds = preventTeamReuse
+    ? new Set(matches.flatMap((match) => [match.home_team_id, match.away_team_id]))
+    : new Set<number>();
+  const availableTeams = preventTeamReuse
+    ? selectableTeams.filter((team) => !assignedTeamIds.has(team.id))
+    : selectableTeams;
 
   const handleAddMatch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -147,7 +167,8 @@ export default function MatchManager({ stage, title, userId, qualifiedCount = 2,
         parseInt(homeTeamId),
         parseInt(awayTeamId),
         stage,
-        matchDate
+        matchDate,
+        matchTerrain
       );
       if (error) {
         console.error('Erreur:', error);
@@ -155,10 +176,11 @@ export default function MatchManager({ stage, title, userId, qualifiedCount = 2,
         return;
       }
       if (data) {
-        loadData();
+        await loadData();
         setHomeTeamId('');
         setAwayTeamId('');
         setMatchDate('');
+        setMatchTerrain('');
       }
     } finally {
       setLoading(false);
@@ -237,14 +259,15 @@ export default function MatchManager({ stage, title, userId, qualifiedCount = 2,
       <div className={stage === 'poules' ? 'mb-8 rounded-lg bg-blue-50 p-4' : 'mb-8 p-4 bg-gray-50 rounded-lg'}>
         <h3 className="text-lg font-semibold text-gray-700 mb-2">{stage === 'poules' ? 'Calendrier genere automatiquement par poule' : 'Creer un match'}</h3>
         {stage === 'poules' && <p className="text-sm text-blue-700">Tous les matchs sont crees automatiquement. Il ne reste qu a saisir les scores.</p>}
-        {stage !== 'poules' && <form onSubmit={handleAddMatch} className="flex gap-2 flex-wrap">
+        {stage === 'finale' && <p className="text-sm text-gray-600">Le match de finale est cree automatiquement avec les vainqueurs des demi-finales.</p>}
+        {stage !== 'poules' && stage !== 'finale' && <form onSubmit={handleAddMatch} className="flex gap-2 flex-wrap">
           <select
             value={homeTeamId}
             onChange={(e) => setHomeTeamId(e.target.value)}
             className="px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-600"
           >
             <option value="">Équipe 1</option>
-            {selectableTeams.map((team) => (
+            {availableTeams.map((team) => (
               <option key={team.id} value={team.id}>
                 Poule {team.poule_id} - {team.name}
               </option>
@@ -260,7 +283,7 @@ export default function MatchManager({ stage, title, userId, qualifiedCount = 2,
             className="px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-600"
           >
             <option value="">Équipe 2</option>
-            {selectableTeams.map((team) => (
+            {availableTeams.map((team) => (
               <option key={team.id} value={team.id}>
                 Poule {team.poule_id} - {team.name}
               </option>
@@ -275,9 +298,19 @@ export default function MatchManager({ stage, title, userId, qualifiedCount = 2,
             aria-label="Date du match"
           />
 
+          {['16eme', '8eme', 'quart', 'demi'].includes(stage) && (
+            <input
+              type="text"
+              value={matchTerrain}
+              onChange={(e) => setMatchTerrain(e.target.value)}
+              placeholder="Terrain du match"
+              aria-label="Terrain du match"
+              className="rounded border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-600"
+            />
+          )}
           <button
             type="submit"
-            disabled={loading || !homeTeamId || !awayTeamId}
+            disabled={loading || !homeTeamId || !awayTeamId || (preventTeamReuse && availableTeams.length < 2)}
             className="bg-green-600 text-white px-6 py-2 rounded font-semibold hover:bg-green-700 transition disabled:opacity-50"
           >
             {loading ? 'Ajout...' : 'Ajouter Match'}
@@ -309,64 +342,69 @@ export default function MatchManager({ stage, title, userId, qualifiedCount = 2,
                 {stage === 'poules' && (index === 0 || matches[index - 1].home_team?.poule_id !== match.home_team?.poule_id) && (
                   <h4 className="pt-3 text-lg font-bold text-gray-800">Poule {match.home_team?.poule_id}</h4>
                 )}
-                <div className="rounded border border-gray-200 bg-gray-50 p-3">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div className="flex min-w-0 flex-wrap items-start gap-x-2 gap-y-1">
-                    <span className="mr-1 text-sm font-semibold text-gray-600">Match {index + 1}</span>
-                    <span className="inline-flex flex-col items-center gap-0.5 text-center font-semibold">{match.home_team?.name || 'Equipe'}<CardControls yellow={match.home_yellow_cards || 0} red={match.home_red_cards || 0} onYellow={(change) => handleCardChange(match, 'home_yellow_cards', change)} onRed={(change) => handleCardChange(match, 'home_red_cards', change)} /></span>
-                    <span className="text-gray-500">vs</span>
-                    <span className="inline-flex flex-col items-center gap-0.5 text-center font-semibold">{match.away_team?.name || 'Equipe'}<CardControls yellow={match.away_yellow_cards || 0} red={match.away_red_cards || 0} onYellow={(change) => handleCardChange(match, 'away_yellow_cards', change)} onRed={(change) => handleCardChange(match, 'away_red_cards', change)} /></span>
-                    {match.match_date && <span className="text-sm text-gray-500">{match.match_date}</span>}
+                <div className="rounded border border-gray-200 bg-white px-3 py-2">
+                  <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+                    <div className="grid min-w-0 flex-1 grid-cols-[auto_minmax(0,1fr)_auto_auto_auto_minmax(0,1fr)] items-center gap-2 text-sm">
+                      <span className="font-semibold text-gray-600">Match {index + 1}</span>
+                      <span className="truncate text-right font-medium text-gray-800">{match.home_team?.name || 'Equipe'}</span>
+                      <span className="font-bold text-gray-900">{match.status === 'completed' ? match.home_score : '-'}</span>
+                      <span className="text-gray-500">vs</span>
+                      <span className="font-bold text-gray-900">{match.status === 'completed' ? match.away_score : '-'}</span>
+                      <span className="truncate font-medium text-gray-800">{match.away_team?.name || 'Equipe'}</span>
+                    </div>
+                    {['poules', '16eme', '8eme', 'quart', 'demi', 'finale'].includes(stage) && (editingMatchId === match.id ? (
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="number"
+                          min="0"
+                          value={scores.home}
+                          onChange={(e) => setScores({ ...scores, home: e.target.value })}
+                          className="w-14 rounded border border-gray-300 px-2 py-1 text-center"
+                          aria-label="Buts équipe 1"
+                        />
+                        <span>-</span>
+                        <input
+                          type="number"
+                          min="0"
+                          value={scores.away}
+                          onChange={(e) => setScores({ ...scores, away: e.target.value })}
+                          className="w-14 rounded border border-gray-300 px-2 py-1 text-center"
+                          aria-label="Buts équipe 2"
+                        />
+                        <button onClick={() => handleSaveScore(match.id)} disabled={loading} className="rounded bg-green-600 px-3 py-1 text-sm font-semibold text-white">OK</button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-medium text-gray-500">{match.status === 'completed' ? 'Terminé' : 'À jouer'}</span>
+                        <button
+                          onClick={() => {
+                            setEditingMatchId(match.id);
+                            setScores({ home: match.home_score?.toString() || '', away: match.away_score?.toString() || '' });
+                          }}
+                          className="rounded bg-blue-600 px-3 py-1 text-sm font-semibold text-white"
+                        >
+                          {match.status === 'completed' ? 'Modifier' : 'Résultat'}
+                        </button>
+                        <button
+                          onClick={() => handleDeleteMatch(match.id)}
+                          disabled={loading}
+                          className="inline-flex items-center gap-1 rounded bg-red-600 px-3 py-1 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50"
+                          title="Supprimer le match"
+                        >
+                          <Trash2 size={14} />
+                          Supprimer
+                        </button>
+                      </div>
+                    ))}
                   </div>
-                  {['poules', '16eme', '8eme', 'quart', 'demi', 'finale'].includes(stage) && (editingMatchId === match.id ? (
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="number"
-                        min="0"
-                        value={scores.home}
-                        onChange={(e) => setScores({ ...scores, home: e.target.value })}
-                        className="w-14 rounded border border-gray-300 px-2 py-1 text-center"
-                        aria-label="Buts équipe 1"
-                      />
-                      <span>-</span>
-                      <input
-                        type="number"
-                        min="0"
-                        value={scores.away}
-                        onChange={(e) => setScores({ ...scores, away: e.target.value })}
-                        className="w-14 rounded border border-gray-300 px-2 py-1 text-center"
-                        aria-label="Buts équipe 2"
-                      />
-                      <button onClick={() => handleSaveScore(match.id)} disabled={loading} className="rounded bg-green-600 px-3 py-1 text-sm font-semibold text-white">
-                        OK
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-3">
-                      <span className="font-bold text-blue-700">
-                        {match.status === 'completed' ? `${match.home_score} - ${match.away_score}` : 'À jouer'}
-                      </span>
-                      <button
-                        onClick={() => {
-                          setEditingMatchId(match.id);
-                          setScores({ home: match.home_score?.toString() || '', away: match.away_score?.toString() || '' });
-                        }}
-                        className="rounded bg-blue-600 px-3 py-1 text-sm font-semibold text-white"
-                      >
-                        {match.status === 'completed' ? 'Modifier' : 'Résultat'}
-                      </button>
-                      <button
-                        onClick={() => handleDeleteMatch(match.id)}
-                        disabled={loading}
-                        className="inline-flex items-center gap-1 rounded bg-red-600 px-3 py-1 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50"
-                        title="Supprimer le match"
-                      >
-                        <Trash2 size={14} />
-                        Supprimer
-                      </button>
-                    </div>
-                  ))}
-                </div>
+                  <div className="mt-1 flex flex-wrap items-center gap-x-3 text-xs text-gray-600">
+                    {match.terrain && <span className="font-medium">Terrain : {match.terrain}</span>}
+                    {match.match_date && <span>{match.match_date}</span>}
+                  </div>
+                  <div className="mt-0.5 grid grid-cols-2 gap-x-4 text-xs text-gray-600">
+                    <div><CardControls yellow={match.home_yellow_cards || 0} red={match.home_red_cards || 0} onYellow={(change) => handleCardChange(match, 'home_yellow_cards', change)} onRed={(change) => handleCardChange(match, 'home_red_cards', change)} /></div>
+                    <div><CardControls yellow={match.away_yellow_cards || 0} red={match.away_red_cards || 0} onYellow={(change) => handleCardChange(match, 'away_yellow_cards', change)} onRed={(change) => handleCardChange(match, 'away_red_cards', change)} /></div>
+                  </div>
                 </div>
               </Fragment>
             ))}

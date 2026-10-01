@@ -37,18 +37,26 @@ interface PouleProps {
   name: string;
   userId: string;
   qualifiedCount: number;
+  terrain: string;
+  onSaveTerrain: (id: number, terrain: string) => Promise<void>;
   onDelete: (id: number) => void;
 }
 
-export default function Poule({ id, name, userId, qualifiedCount, onDelete }: PouleProps) {
+export default function Poule({ id, name, userId, qualifiedCount, terrain, onSaveTerrain, onDelete }: PouleProps) {
   const [teams, setTeams] = useState<Team[]>([]);
   const [matches, setMatches] = useState<Match[]>([]);
   const [newTeamName, setNewTeamName] = useState('');
+  const [terrainValue, setTerrainValue] = useState(terrain);
+  const [savingTerrain, setSavingTerrain] = useState(false);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     loadTeams();
   }, [id]);
+
+  useEffect(() => {
+    setTerrainValue(terrain);
+  }, [terrain]);
 
   const loadTeams = async () => {
     const [{ data: teamsData }, { data: matchesData }] = await Promise.all([
@@ -179,6 +187,16 @@ export default function Poule({ id, name, userId, qualifiedCount, onDelete }: Po
         </button>
       </div>
 
+      <form onSubmit={async (event) => {
+        event.preventDefault();
+        setSavingTerrain(true);
+        try { await onSaveTerrain(id, terrainValue.trim()); }
+        finally { setSavingTerrain(false); }
+      }} className="flex flex-wrap items-center gap-2 border-b border-gray-100 px-4 py-3">
+        <label htmlFor={'poule-terrain-' + id} className="text-sm font-medium text-gray-700">Terrain</label>
+        <input id={'poule-terrain-' + id} type="text" value={terrainValue} onChange={(event) => setTerrainValue(event.target.value)} placeholder="Nom du terrain" className="min-w-0 flex-1 rounded border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600" />
+        <button type="submit" disabled={savingTerrain || terrainValue.trim() === terrain} className="rounded bg-blue-600 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-gray-300">{savingTerrain ? 'Enregistrement...' : 'Enregistrer le terrain'}</button>
+      </form>
       <div className="overflow-x-auto">
         <table className="w-full min-w-[830px] text-sm">
           <thead className="border-b border-gray-200 text-xs text-gray-600">

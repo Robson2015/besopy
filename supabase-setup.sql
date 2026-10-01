@@ -28,6 +28,7 @@ CREATE TABLE IF NOT EXISTS matches (
 );
 
 ALTER TABLE matches ADD COLUMN IF NOT EXISTS match_date DATE;
+ALTER TABLE matches ADD COLUMN IF NOT EXISTS terrain TEXT;
 ALTER TABLE matches ADD COLUMN IF NOT EXISTS home_yellow_cards INTEGER NOT NULL DEFAULT 0;
 ALTER TABLE matches ADD COLUMN IF NOT EXISTS home_red_cards INTEGER NOT NULL DEFAULT 0;
 ALTER TABLE matches ADD COLUMN IF NOT EXISTS away_yellow_cards INTEGER NOT NULL DEFAULT 0;
@@ -44,8 +45,23 @@ CREATE INDEX IF NOT EXISTS matches_away_team_id_idx ON matches(away_team_id);
 CREATE TABLE IF NOT EXISTS tournament_settings (
   id INTEGER PRIMARY KEY DEFAULT 1 CHECK (id = 1),
   qualified_count INTEGER NOT NULL DEFAULT 4 CHECK (qualified_count IN (2, 3, 4)),
+  poule_terrains JSONB NOT NULL DEFAULT '{}'::jsonb,
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
+
+ALTER TABLE tournament_settings ADD COLUMN IF NOT EXISTS poule_terrains JSONB NOT NULL DEFAULT '{}'::jsonb;
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_publication WHERE pubname = 'supabase_realtime')
+    AND NOT EXISTS (
+      SELECT 1 FROM pg_publication_tables
+      WHERE pubname = 'supabase_realtime'
+        AND schemaname = 'public'
+        AND tablename = 'tournament_settings'
+    ) THEN
+    EXECUTE 'ALTER PUBLICATION supabase_realtime ADD TABLE public.tournament_settings';
+  END IF;
+END $$;
 
 -- Enable Row Level Security
 ALTER TABLE teams ENABLE ROW LEVEL SECURITY;

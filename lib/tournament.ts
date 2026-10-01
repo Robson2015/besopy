@@ -59,7 +59,7 @@ export async function getAllTeams() {
   return { data, error };
 }
 
-export async function addMatch(homeTeamId: number, awayTeamId: number, stage: string, matchDate?: string) {
+export async function addMatch(homeTeamId: number, awayTeamId: number, stage: string, matchDate?: string, terrain?: string) {
   const { data, error } = await supabase
     .from('matches')
     .insert([
@@ -68,6 +68,7 @@ export async function addMatch(homeTeamId: number, awayTeamId: number, stage: st
         away_team_id: awayTeamId,
         stage,
         match_date: matchDate || null,
+        terrain: terrain?.trim() || null,
         home_score: null,
         away_score: null,
         status: 'pending',
