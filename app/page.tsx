@@ -1,15 +1,17 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { Fragment, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Trophy } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { getPouleMatchSchedule } from '@/lib/tournament';
 
 type Team = { id: number; name: string; poule_id: number };
 type Match = {
   created_at?: string;
-  id: number; stage: string; match_date: string | null; terrain: string | null; status: string;
+  schedule_round?: number;
+  id: number; stage: string; match_date: string | null; match_time: string | null; terrain: string | null; status: string;
   home_score: number | null; away_score: number | null;
   home_yellow_cards: number; home_red_cards: number; away_yellow_cards: number; away_red_cards: number;
   home_team_id: number; away_team_id: number;
@@ -52,7 +54,7 @@ export default function Home() {
       if (!cancelled && terrains && typeof terrains === 'object') setPouleTerrains(terrains);
       const localValue = Number(window.localStorage.getItem('tournament-qualified-count') || 4);
       const count = Number(data?.qualified_count ?? localValue);
-      if (!cancelled && [2, 3, 4].includes(count)) {
+      if (!cancelled && [2, 4].includes(count)) {
         setQualifiedCount(count);
         setShow16eme(pouleCount * count >= 32);
       }
@@ -123,7 +125,7 @@ export default function Home() {
 
   const visiblePhases = phases.filter((phase) => phase.id !== '16eme' || show16eme);
   const completedMatches = matches.filter((match) => match.status === 'completed').length;
-  const pouleMatches = matches.filter((match) => match.stage === 'poules');
+  const pouleMatches = getPouleMatchSchedule(teams, matches.filter((match) => match.stage === 'poules'));
   const currentPhase = [...phases].reverse().find((phase) => matches.some((match) => match.stage === phase.id))?.label || (teams.length ? 'Phase de poules' : 'En attente du tournoi');
 
   return (
@@ -266,14 +268,36 @@ function PanelMessage({ children }: { children: React.ReactNode }) {
 }
 
 function PouleMatchSections({ matches, terrains }: { matches: Match[]; terrains: Record<number, string> }) {
-  const groups = new Map<number, Match[]>();
+  const matchesByPoule = new Map<number, Match[]>();
   matches.forEach((match) => {
     const pouleId = match.home_team?.poule_id || 0;
-    const group = groups.get(pouleId) || [];
-    group.push(match);
-    groups.set(pouleId, group);
+    const pouleMatches = matchesByPoule.get(pouleId) || [];
+    pouleMatches.push(match);
+    matchesByPoule.set(pouleId, pouleMatches);
   });
-  return <div className="space-y-7">{[...groups.entries()].sort(([a], [b]) => a - b).map(([pouleId, groupMatches]) => <section key={pouleId}><div className="mb-3 flex flex-wrap items-center justify-between gap-2"><h4 className="text-lg font-bold text-[#27313b]">Poule {pouleId}</h4>{terrains[pouleId] && <span className="text-sm font-medium text-[#56616b]">Terrain : {terrains[pouleId]}</span>}</div><div className="grid gap-3 md:grid-cols-2">{groupMatches.map((match) => <MatchCard key={match.id} match={match} />)}</div></section>)}</div>;
+
+  return <div className="space-y-7">{[...matchesByPoule.entries()].sort(([first], [second]) => first - second).map(([pouleId, pouleMatches]) => {
+    const matchesByRound = new Map<number, Match[]>();
+    pouleMatches.forEach((match) => {
+      const round = match.schedule_round || 1;
+      const roundMatches = matchesByRound.get(round) || [];
+      roundMatches.push(match);
+      matchesByRound.set(round, roundMatches);
+    });
+
+    return <section key={pouleId}>
+      <div className="mb-3 flex items-center justify-between border-b border-[#dfe5dc] pb-2">
+        <h4 className="text-lg font-bold text-[#27313b]">Poule {pouleId}</h4>
+        {terrains[pouleId] && <span className="text-sm font-medium text-[#56616b]">Terrain : {terrains[pouleId]}</span>}
+      </div>
+      <div className="space-y-5">{[...matchesByRound.entries()].sort(([first], [second]) => first - second).map(([round, roundMatches]) => (
+        <div key={round}>
+          <h5 className="mb-2 text-sm font-semibold text-[#56616b]">Tour {round}</h5>
+          <div className="grid gap-3 md:grid-cols-2">{roundMatches.map((match) => <MatchCard key={match.id} match={match} />)}</div>
+        </div>
+      ))}</div>
+    </section>;
+  })}</div>;
 }
 
 function RedCardMark({ count }: { count: number }) {
@@ -313,7 +337,7 @@ function MatchCard({ match }: { match: Match }) {
       </div>
       <div className="flex flex-col items-center justify-center border-l border-[#c5cbcd] px-2 text-center">
         <span className="text-xs font-medium">{complete ? 'Termine' : 'A jouer'}</span>
-        <span className="mt-1 text-xs text-[#56616b]">{dateLabel}</span>{match.terrain && <span className="mt-1 text-xs font-medium text-[#56616b]">Terrain : {match.terrain}</span>}
+        <span className="mt-1 text-xs text-[#56616b]">{dateLabel}</span>{match.match_time && <span className="mt-1 text-xs font-medium text-[#56616b]">{match.match_time.slice(0, 5)}</span>}{match.terrain && <span className="mt-1 text-xs font-medium text-[#56616b]">Terrain : {match.terrain}</span>}
       </div>
 
     </article>

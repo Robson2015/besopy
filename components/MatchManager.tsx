@@ -2,7 +2,7 @@
 
 import { Fragment, useEffect, useRef, useState } from 'react';
 import { Minus, Trash2 } from 'lucide-react';
-import { getAllTeams, addMatch, getMatches, updateMatchScore, updateMatchCards, deleteMatch, deleteMatchesByStage } from '@/lib/tournament';
+import { getAllTeams, addMatch, getMatches, getPouleMatchSchedule, updateMatchScheduleOrder, updateMatchScore, updateMatchSchedule, updateMatchCards, deleteMatch, deleteMatchesByStage } from '@/lib/tournament';
 
 interface Team {
   id: number;
@@ -13,10 +13,13 @@ interface Team {
 
 interface Match {
   id: number;
+  schedule_round?: number;
   home_team_id: number;
   away_team_id: number;
   stage: string;
+  schedule_order?: number | null;
   match_date: string | null;
+  match_time: string | null;
   terrain: string | null;
   home_score: number | null;
   away_score: number | null;
@@ -52,10 +55,14 @@ export default function MatchManager({ stage, title, userId, qualifiedCount = 2,
   const [homeTeamId, setHomeTeamId] = useState('');
   const [awayTeamId, setAwayTeamId] = useState('');
   const [matchDate, setMatchDate] = useState('');
+  const [matchTime, setMatchTime] = useState('');
+  const [matchDateDrafts, setMatchDateDrafts] = useState<Record<number, string>>({});
+  const [matchTimeDrafts, setMatchTimeDrafts] = useState<Record<number, string>>({});
   const [matchTerrain, setMatchTerrain] = useState('');
   const [editingMatchId, setEditingMatchId] = useState<number | null>(null);
   const [scores, setScores] = useState({ home: '', away: '' });
   const [loading, setLoading] = useState(false);
+  const [savingMatchDateId, setSavingMatchDateId] = useState<number | null>(null);
   const [dataLoading, setDataLoading] = useState(true);
 
   useEffect(() => {
@@ -102,6 +109,17 @@ export default function MatchManager({ stage, title, userId, qualifiedCount = 2,
         if (created.some((result) => result.error)) {
           console.error('Unable to generate all group matches', created.filter((result) => result.error));
         }
+
+        const { data: allGroupMatches } = await getMatches('poules');
+        const ownedGroupMatches = (allGroupMatches || []).filter((match: Match) => ownedTeamIds.has(match.home_team_id) && ownedTeamIds.has(match.away_team_id));
+        const scheduledMatches = getPouleMatchSchedule(ownedTeams, ownedGroupMatches);
+        const scheduleUpdates = scheduledMatches
+          .map((match, index) => ({ id: match.id, schedule_order: index + 1 }))
+          .filter((update, index) => scheduledMatches[index].schedule_order !== update.schedule_order);
+        if (scheduleUpdates.length) {
+          const { error } = await updateMatchScheduleOrder(scheduleUpdates);
+          if (error) console.error('Unable to save group match order. Apply the schedule-order migration.', error);
+        }
       }
 
       let nextStageTeamIds: number[] | null = null;
@@ -135,9 +153,7 @@ export default function MatchManager({ stage, title, userId, qualifiedCount = 2,
       const { data: matchesData } = await getMatches(stage);
       if (matchesData) {
         const ownMatches = matchesData.filter((match: Match) => ownedTeamIds.has(match.home_team_id) && ownedTeamIds.has(match.away_team_id));
-        const orderedMatches = stage === 'poules'
-          ? [...ownMatches].sort((first, second) => (first.home_team?.poule_id || 0) - (second.home_team?.poule_id || 0))
-          : ownMatches;
+        const orderedMatches = stage === 'poules' ? getPouleMatchSchedule(ownedTeams, ownMatches) : ownMatches;
         setMatches(orderedMatches);
       }
     } finally {
@@ -168,7 +184,8 @@ export default function MatchManager({ stage, title, userId, qualifiedCount = 2,
         parseInt(awayTeamId),
         stage,
         matchDate,
-        matchTerrain
+        matchTerrain,
+        matchTime
       );
       if (error) {
         console.error('Erreur:', error);
@@ -180,6 +197,7 @@ export default function MatchManager({ stage, title, userId, qualifiedCount = 2,
         setHomeTeamId('');
         setAwayTeamId('');
         setMatchDate('');
+        setMatchTime('');
         setMatchTerrain('');
       }
     } finally {
@@ -204,6 +222,32 @@ export default function MatchManager({ stage, title, userId, qualifiedCount = 2,
       setScores({ home: '', away: '' });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSaveMatchDate = async (match: Match) => {
+    const matchDate = matchDateDrafts[match.id] ?? match.match_date ?? '';
+    const matchTime = matchTimeDrafts[match.id] ?? match.match_time?.slice(0, 5) ?? '';
+    setSavingMatchDateId(match.id);
+    try {
+      const { error } = await updateMatchSchedule(match.id, matchDate || null, matchTime || null);
+      if (error) {
+        alert('Erreur lors de l’enregistrement de la date et de l’heure');
+        return;
+      }
+      setMatches((current) => current.map((item) => item.id === match.id ? { ...item, match_date: matchDate || null, match_time: matchTime || null } : item));
+      setMatchDateDrafts((current) => {
+        const remaining = { ...current };
+        delete remaining[match.id];
+        return remaining;
+      });
+      setMatchTimeDrafts((current) => {
+        const remaining = { ...current };
+        delete remaining[match.id];
+        return remaining;
+      });
+    } finally {
+      setSavingMatchDateId(null);
     }
   };
 
@@ -300,6 +344,16 @@ export default function MatchManager({ stage, title, userId, qualifiedCount = 2,
 
           {['16eme', '8eme', 'quart', 'demi'].includes(stage) && (
             <input
+              type="time"
+              value={matchTime}
+              onChange={(e) => setMatchTime(e.target.value)}
+              className="rounded border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-600"
+              aria-label="Heure du match"
+            />
+          )}
+
+          {['16eme', '8eme', 'quart', 'demi'].includes(stage) && (
+            <input
               type="text"
               value={matchTerrain}
               onChange={(e) => setMatchTerrain(e.target.value)}
@@ -339,18 +393,25 @@ export default function MatchManager({ stage, title, userId, qualifiedCount = 2,
           <div className="space-y-3">
             {matches.map((match, index) => (
               <Fragment key={match.id}>
-                {stage === 'poules' && (index === 0 || matches[index - 1].home_team?.poule_id !== match.home_team?.poule_id) && (
-                  <h4 className="pt-3 text-lg font-bold text-gray-800">Poule {match.home_team?.poule_id}</h4>
+                {stage === 'poules' && (
+                  index === 0 || matches[index - 1].home_team?.poule_id !== match.home_team?.poule_id
+                ) && (
+                  <div className="flex items-center justify-between pt-3">
+                    <h4 className="text-lg font-bold text-gray-800">Poule {match.home_team?.poule_id}</h4>
+                  </div>
+                )}
+                {stage === 'poules' && (index === 0 || matches[index - 1].schedule_round !== match.schedule_round || matches[index - 1].home_team?.poule_id !== match.home_team?.poule_id) && (
+                  <h5 className="pt-2 text-sm font-semibold text-gray-500">Tour {match.schedule_round || '-'}</h5>
                 )}
                 <div className="rounded border border-gray-200 bg-white px-3 py-2">
                   <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-                    <div className="grid min-w-0 flex-1 grid-cols-[auto_minmax(0,1fr)_auto_auto_auto_minmax(0,1fr)] items-center gap-2 text-sm">
-                      <span className="font-semibold text-gray-600">Match {index + 1}</span>
+                    <div className="grid min-w-0 flex-1 grid-cols-[auto_minmax(0,2fr)_auto_auto_auto_minmax(0,1fr)] items-center gap-2 text-sm">
+                      <span className="w-20 font-semibold text-gray-600">Match {index + 1}</span>
                        <div className="flex flex-col gap-1">
                         <div className="flex items-center justify-center gap-2">
                           <div className="flex flex-col items-center justify-end ">
                             <div className="flex items-center justify-end gap-2">
-                              <span className="truncate text-right font-medium text-gray-800">{match.home_team?.name || 'Equipe'} </span>
+                              <span className="truncate text-right  text-base text-gray-800">{match.home_team?.name || 'Equipe'} </span>
                               <span className="font-bold text-gray-900"> {match.status === 'completed' ? match.home_score : '-'} </span>
                             </div>
                             <div className="flex items-center justify-end gap-2">
@@ -361,7 +422,7 @@ export default function MatchManager({ stage, title, userId, qualifiedCount = 2,
                           <div className="flex flex-col items-center justify-start">
                             <div className="flex items-center justify-end gap-2">
                             <span className="font-bold text-gray-900"> {match.status === 'completed' ? match.away_score : '-'} </span>
-                            <span className="truncate font-medium text-gray-800"> {match.away_team?.name || 'Equipe'} </span>
+                            <span className="truncate text-base text-gray-800"> {match.away_team?.name || 'Equipe'} </span>
                             </div>
                            <div className="flex items-center justify-start gap-2">
                             <CardControls yellow={match.away_yellow_cards || 0} red={match.away_red_cards || 0} onYellow={(change) => handleCardChange(match, 'away_yellow_cards', change)} onRed={(change) => handleCardChange(match, 'away_red_cards', change)} />
@@ -373,7 +434,41 @@ export default function MatchManager({ stage, title, userId, qualifiedCount = 2,
                     </div>
                      <div className="flex flex-wrap items-center gap-x-3 text-xs text-gray-600">
                     {match.terrain && <span className="font-medium">Terrain : {match.terrain}</span>}
-                    {match.match_date && <span>{match.match_date}</span>}
+                    {stage === 'poules' ? (
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="date"
+                          value={matchDateDrafts[match.id] ?? match.match_date ?? ''}
+                          onChange={(event) => setMatchDateDrafts((current) => ({ ...current, [match.id]: event.target.value }))}
+                          className="rounded border border-gray-300 px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-blue-600"
+                          aria-label={`Date du match ${match.home_team?.name || ''} contre ${match.away_team?.name || ''}`}
+                        />
+                        <input
+                          type="time"
+                          value={matchTimeDrafts[match.id] ?? match.match_time?.slice(0, 5) ?? ''}
+                          onChange={(event) => setMatchTimeDrafts((current) => ({ ...current, [match.id]: event.target.value }))}
+                          className="rounded border border-gray-300 px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-blue-600"
+                          aria-label={`Heure du match ${match.home_team?.name || ''} contre ${match.away_team?.name || ''}`}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => handleSaveMatchDate(match)}
+                          disabled={savingMatchDateId === match.id || (
+                            (matchDateDrafts[match.id] ?? match.match_date ?? '') === (match.match_date ?? '') &&
+                            (matchTimeDrafts[match.id] ?? match.match_time?.slice(0, 5) ?? '') === (match.match_time?.slice(0, 5) ?? '')
+                          )}
+                          className="rounded bg-blue-600 px-2 py-1 text-xs font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          {savingMatchDateId === match.id ? '...' : 'Enregistrer'}
+                        </button>
+                      </div>
+                    ) : (match.match_date || match.match_time) && (
+                      <span>
+                        {match.match_date}
+                        {match.match_date && match.match_time ? ' · ' : ''}
+                        {match.match_time?.slice(0, 5)}
+                      </span>
+                    )}
                   </div>
                     {['poules', '16eme', '8eme', 'quart', 'demi', 'finale'].includes(stage) && (editingMatchId === match.id ? (
                       <div className="flex items-center gap-2">

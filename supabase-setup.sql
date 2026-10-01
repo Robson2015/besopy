@@ -15,7 +15,9 @@ CREATE TABLE IF NOT EXISTS matches (
   home_team_id BIGINT NOT NULL REFERENCES teams(id) ON DELETE CASCADE,
   away_team_id BIGINT NOT NULL REFERENCES teams(id) ON DELETE CASCADE,
   stage TEXT NOT NULL, -- 'poules', '16eme', '8eme', 'quart', 'demi', 'finale'
+  schedule_order INTEGER,
   match_date DATE,
+  match_time TIME,
   home_score INTEGER,
   away_score INTEGER,
   home_yellow_cards INTEGER NOT NULL DEFAULT 0,
@@ -28,6 +30,8 @@ CREATE TABLE IF NOT EXISTS matches (
 );
 
 ALTER TABLE matches ADD COLUMN IF NOT EXISTS match_date DATE;
+ALTER TABLE matches ADD COLUMN IF NOT EXISTS schedule_order INTEGER;
+ALTER TABLE matches ADD COLUMN IF NOT EXISTS match_time TIME;
 ALTER TABLE matches ADD COLUMN IF NOT EXISTS terrain TEXT;
 ALTER TABLE matches ADD COLUMN IF NOT EXISTS home_yellow_cards INTEGER NOT NULL DEFAULT 0;
 ALTER TABLE matches ADD COLUMN IF NOT EXISTS home_red_cards INTEGER NOT NULL DEFAULT 0;
@@ -44,7 +48,7 @@ CREATE INDEX IF NOT EXISTS matches_away_team_id_idx ON matches(away_team_id);
 -- Shared tournament display settings
 CREATE TABLE IF NOT EXISTS tournament_settings (
   id INTEGER PRIMARY KEY DEFAULT 1 CHECK (id = 1),
-  qualified_count INTEGER NOT NULL DEFAULT 4 CHECK (qualified_count IN (2, 3, 4)),
+  qualified_count INTEGER NOT NULL DEFAULT 4 CHECK (qualified_count IN (2, 4)),
   poule_terrains JSONB NOT NULL DEFAULT '{}'::jsonb,
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );

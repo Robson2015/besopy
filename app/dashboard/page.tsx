@@ -57,7 +57,7 @@ export default function Dashboard() {
       if (!cancelled && terrains && typeof terrains === 'object') setPouleTerrains(terrains);
       const localValue = Number(window.localStorage.getItem('tournament-qualified-count') || 4);
       const count = Number(data?.qualified_count ?? localValue);
-      if (!cancelled && [2, 3, 4].includes(count)) {
+      if (!cancelled && [2, 4].includes(count)) {
         setQualifiedCount(count);
         setSavedQualifiedCount(count);
       }
@@ -278,7 +278,6 @@ export default function Dashboard() {
                 className="rounded border border-blue-200 bg-white px-3 py-2 font-semibold text-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-600"
               >
                 <option value={2}>2 équipes</option>
-                <option value={3}>3 équipes</option>
                 <option value={4}>4 équipes</option>
               </select>
               <span className="text-sm text-gray-600">
