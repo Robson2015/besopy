@@ -21,7 +21,7 @@ export default function Dashboard() {
   const [savedQualifiedCount, setSavedQualifiedCount] = useState(4);
   const [qualificationDirty, setQualificationDirty] = useState(false);
   const qualifiedTeamCount = poules.length * qualifiedCount;
-  const startingPhase = qualifiedTeamCount >= 32 ? '16eme' : qualifiedTeamCount >= 16 ? '8eme' : 'quart';
+  const startingPhase = qualifiedTeamCount >= 32 ? '16eme' : qualifiedTeamCount >= 8 ? '8eme' : 'quart';
 
   useEffect(() => {
     const checkAuth = async () => {

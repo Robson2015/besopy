@@ -126,7 +126,8 @@ export default function MatchManager({ stage, title, userId, qualifiedCount = 2,
       if (initialPhase && teamsData) {
         const { data: groupMatches } = await getMatches('poules');
         if (groupMatches) {
-          setQualifiedTeamIds(getQualifiedTeamIds(ownedTeams, groupMatches.filter((match: Match) => ownedTeamIds.has(match.home_team_id) && ownedTeamIds.has(match.away_team_id)), qualifiedCount));
+          const qualifiedIds = getQualifiedTeamIds(ownedTeams, groupMatches.filter((match: Match) => ownedTeamIds.has(match.home_team_id) && ownedTeamIds.has(match.away_team_id)), qualifiedCount);
+          setQualifiedTeamIds(qualifiedIds);
         }
       } else if (stage === '8eme' || stage === 'quart' || stage === 'demi' || stage === 'finale') {
         const previousStage = stage === '8eme' ? '16eme' : stage === 'quart' ? '8eme' : stage === 'demi' ? 'quart' : 'demi';
