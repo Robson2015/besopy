@@ -403,15 +403,15 @@ export default function MatchManager({ stage, title, userId, qualifiedCount = 2,
                 {stage === 'poules' && (index === 0 || matches[index - 1].schedule_round !== match.schedule_round || matches[index - 1].home_team?.poule_id !== match.home_team?.poule_id) && (
                   <h5 className="pt-2 text-sm font-semibold text-gray-500">Tour {match.schedule_round || '-'}</h5>
                 )}
-                <div className="grid grid-cols-1 gap-y-2 rounded border border-gray-200 bg-white px-2 py-2 sm:flex sm:flex-wrap sm:items-center sm:justify-between sm:gap-x-4 sm:px-3">
-                  <div className="grid min-w-0 grid-cols-1 items-center gap-2 text-sm sm:flex sm:min-w-0 sm:flex-1 sm:items-center">
-                    <span className="font-semibold text-gray-600 sm:w-20 sm:shrink-0">Match {index + 1}</span>
+                <div className="grid grid-cols-1 gap-y-2 rounded border border-gray-200 bg-white px-2 py-2 lg:flex lg:flex-wrap lg:items-center lg:justify-between lg:gap-x-4 lg:px-3">
+                  <div className="grid min-w-0 grid-cols-1 items-center gap-2 text-sm lg:flex lg:min-w-0 lg:flex-1 lg:items-center">
+                    <span className="font-semibold text-gray-600 lg:w-20 lg:shrink-0">Match {index + 1}</span>
                        <div className="flex min-w-0 flex-col gap-1">
-                        <div className="flex items-center justify-center gap-2">
+                        <div className="flex w-full min-w-0 flex-nowrap items-center justify-center gap-2">
                           <div className="flex min-w-0 flex-1 flex-col items-center justify-end">
-                            <div className="flex min-w-0 max-w-full items-center justify-end gap-1">
-                              <span className="truncate text-right text-base text-gray-800">{match.home_team?.name || 'Equipe'}</span>
-                              <span className="shrink-0 font-bold text-gray-900">{match.status === 'completed' ? match.home_score : '-'}</span>
+                            <div className="flex min-w-0 max-w-full flex-nowrap items-center justify-end gap-1">
+                              <span className="min-w-0 whitespace-nowrap text-right text-base text-gray-800">{match.home_team?.name || 'Equipe'}</span>
+                              <span className="shrink-0 whitespace-nowrap font-bold text-gray-900">{match.status === 'completed' ? match.home_score : '-'}</span>
                             </div>
                             <div className="flex items-center justify-end gap-2">
                               <CardControls yellow={match.home_yellow_cards || 0} red={match.home_red_cards || 0} onYellow={(change) => handleCardChange(match, 'home_yellow_cards', change)} onRed={(change) => handleCardChange(match, 'home_red_cards', change)} />
@@ -419,9 +419,9 @@ export default function MatchManager({ stage, title, userId, qualifiedCount = 2,
                           </div>
                           <span className="shrink-0 text-gray-500">vs</span>
                           <div className="flex min-w-0 flex-1 flex-col items-center justify-start">
-                            <div className="flex min-w-0 max-w-full items-center justify-end gap-1">
-                            <span className="shrink-0 font-bold text-gray-900">{match.status === 'completed' ? match.away_score : '-'}</span>
-                            <span className="truncate text-base text-gray-800">{match.away_team?.name || 'Equipe'}</span>
+                            <div className="flex min-w-0 max-w-full flex-nowrap items-center justify-end gap-1">
+                            <span className="shrink-0 whitespace-nowrap font-bold text-gray-900">{match.status === 'completed' ? match.away_score : '-'}</span>
+                            <span className="min-w-0 whitespace-nowrap text-base text-gray-800">{match.away_team?.name || 'Equipe'}</span>
                             </div>
                            <div className="flex items-center justify-start gap-2">
                             <CardControls yellow={match.away_yellow_cards || 0} red={match.away_red_cards || 0} onYellow={(change) => handleCardChange(match, 'away_yellow_cards', change)} onRed={(change) => handleCardChange(match, 'away_red_cards', change)} />
@@ -431,22 +431,22 @@ export default function MatchManager({ stage, title, userId, qualifiedCount = 2,
                       
                      </div>
                     </div>
-                     <div className="flex w-full flex-wrap items-center gap-x-3 gap-y-2 text-xs text-gray-600 sm:w-auto">
+                     <div className="flex w-full flex-wrap items-center gap-x-3 gap-y-2 text-xs text-gray-600 lg:w-auto">
                     {match.terrain && <span className="font-medium">Terrain : {match.terrain}</span>}
                     {stage === 'poules' ? (
-                      <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
+                      <div className="flex w-full flex-wrap items-center gap-2 lg:w-auto">
                         <input
                           type="date"
                           value={matchDateDrafts[match.id] ?? match.match_date ?? ''}
                           onChange={(event) => setMatchDateDrafts((current) => ({ ...current, [match.id]: event.target.value }))}
-                          className="min-w-0 flex-1 rounded border border-gray-300 px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-blue-600 sm:flex-none"
+                          className="min-w-0 flex-1 rounded border border-gray-300 px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-blue-600 lg:flex-none"
                           aria-label={`Date du match ${match.home_team?.name || ''} contre ${match.away_team?.name || ''}`}
                         />
                         <input
                           type="time"
                           value={matchTimeDrafts[match.id] ?? match.match_time?.slice(0, 5) ?? ''}
                           onChange={(event) => setMatchTimeDrafts((current) => ({ ...current, [match.id]: event.target.value }))}
-                          className="min-w-0 flex-1 rounded border border-gray-300 px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-blue-600 sm:flex-none"
+                          className="min-w-0 flex-1 rounded border border-gray-300 px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-blue-600 lg:flex-none"
                           aria-label={`Heure du match ${match.home_team?.name || ''} contre ${match.away_team?.name || ''}`}
                         />
                         <button
@@ -470,7 +470,7 @@ export default function MatchManager({ stage, title, userId, qualifiedCount = 2,
                     )}
                   </div>
                     {['poules', '16eme', '8eme', 'quart', 'demi', 'finale'].includes(stage) && (editingMatchId === match.id ? (
-                      <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
+                      <div className="flex w-full flex-wrap items-center gap-2 lg:w-auto">
                         <input
                           type="number"
                           min="0"
@@ -491,7 +491,7 @@ export default function MatchManager({ stage, title, userId, qualifiedCount = 2,
                         <button onClick={() => handleSaveScore(match.id)} disabled={loading} className="rounded bg-green-600 px-3 py-1 text-sm font-semibold text-white">OK</button>
                       </div>
                     ) : (
-                      <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
+                      <div className="flex w-full flex-wrap items-center gap-2 lg:w-auto">
                         <span className="text-xs font-medium text-gray-500">{match.status === 'completed' ? 'Terminé' : 'À jouer'}</span>
                         <button
                           onClick={() => {

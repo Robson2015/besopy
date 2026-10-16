@@ -150,7 +150,7 @@ export default function Dashboard() {
       {/* Navigation Tabs */}
       <div className="bg-white border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4">
-          <nav className="flex gap-8">
+          <nav className="flex gap-2 flex-wrap">
             <button
               onClick={() => setActiveTab('poules')}
               className={`py-4 px-2 font-semibold border-b-2 transition ${
