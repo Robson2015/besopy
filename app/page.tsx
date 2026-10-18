@@ -35,6 +35,7 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [show16eme, setShow16eme] = useState(false);
+  const [show8eme, setShow8eme] = useState(true);
   const [activeTab, setActiveTab] = useState('classement');
   const [qualifiedCount, setQualifiedCount] = useState(4);
   const [pouleTerrains, setPouleTerrains] = useState<Record<number, string>>({});
@@ -56,7 +57,9 @@ export default function Home() {
       const count = Number(data?.qualified_count ?? localValue);
       if (!cancelled && [2, 4].includes(count)) {
         setQualifiedCount(count);
-        setShow16eme(pouleCount * count >= 32);
+        const qualifiedTeamCount = pouleCount * count;
+        setShow16eme(qualifiedTeamCount >= 32);
+        setShow8eme(qualifiedTeamCount >= 16);
       }
     };
     loadQualificationSetting();
@@ -123,7 +126,10 @@ export default function Home() {
     return [...groups.entries()].sort((a, b) => a[0] - b[0]);
   }, [teams, matches]);
 
-  const visiblePhases = phases.filter((phase) => phase.id !== '16eme' || show16eme);
+  const visiblePhases = phases.filter((phase) => (
+    (phase.id !== '16eme' || show16eme) &&
+    (phase.id !== '8eme' || show8eme)
+  ));
   const completedMatches = matches.filter((match) => match.status === 'completed').length;
   const pouleMatches = getPouleMatchSchedule(teams, matches.filter((match) => match.stage === 'poules'));
   const currentPhase = [...phases].reverse().find((phase) => matches.some((match) => match.stage === phase.id))?.label || (teams.length ? 'Phase de poules' : 'En attente du tournoi');

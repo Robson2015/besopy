@@ -21,7 +21,7 @@ export default function Dashboard() {
   const [savedQualifiedCount, setSavedQualifiedCount] = useState(4);
   const [qualificationDirty, setQualificationDirty] = useState(false);
   const qualifiedTeamCount = poules.length * qualifiedCount;
-  const startingPhase = qualifiedTeamCount >= 32 ? '16eme' : qualifiedTeamCount >= 8 ? '8eme' : 'quart';
+  const startingPhase = qualifiedTeamCount >= 32 ? '16eme' : qualifiedTeamCount >= 16 ? '8eme' : 'quart';
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -194,7 +194,7 @@ export default function Dashboard() {
                   8eme de Finale
                 </button>
               </>
-            ) : (
+            ) : startingPhase === '8eme' ? (
               <button
                 onClick={() => setActiveTab('8eme')}
                 className={`py-4 px-2 font-semibold border-b-2 transition ${
@@ -205,7 +205,7 @@ export default function Dashboard() {
               >
                 8eme de Finale
               </button>
-            )}
+            ) : null}
             <button
               onClick={() => setActiveTab('quart')}
               className={`py-4 px-2 font-semibold border-b-2 transition ${
