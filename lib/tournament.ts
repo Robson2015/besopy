@@ -203,6 +203,34 @@ export function getPouleMatchSchedule<T extends { id: number; home_team_id: numb
   return [...orderedMatches, ...unassignedMatches];
 }
 
+export function sortPouleMatchesChronologically<T extends {
+  id: number;
+  match_date?: string | null;
+  match_time?: string | null;
+  schedule_round?: number;
+  schedule_order?: number | null;
+  created_at?: string;
+}>(matches: T[]) {
+  return [...matches].sort((first, second) => {
+    if (first.match_date && second.match_date && first.match_date !== second.match_date) {
+      return first.match_date.localeCompare(second.match_date);
+    }
+    if (first.match_date && !second.match_date) return 1;
+    if (!first.match_date && second.match_date) return -1;
+
+    if (first.match_date && second.match_date) {
+      const firstTime = first.match_time || '';
+      const secondTime = second.match_time || '';
+      if (firstTime !== secondTime) return firstTime.localeCompare(secondTime);
+    }
+
+    return (first.schedule_round ?? 0) - (second.schedule_round ?? 0) ||
+      (first.schedule_order ?? first.id) - (second.schedule_order ?? second.id) ||
+      (first.created_at || '').localeCompare(second.created_at || '') ||
+      first.id - second.id;
+  });
+}
+
 export async function updateMatchScheduleOrder(updates: Array<{ id: number; schedule_order: number }>) {
   const errors = await Promise.all(updates.map(async (update) => {
     const { error } = await supabase

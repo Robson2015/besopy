@@ -5,12 +5,13 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Trophy } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
-import { getPouleMatchSchedule } from '@/lib/tournament';
+import { getPouleMatchSchedule, sortPouleMatchesChronologically } from '@/lib/tournament';
 
 type Team = { id: number; name: string; poule_id: number };
 type Match = {
   created_at?: string;
   schedule_round?: number;
+  schedule_order?: number | null;
   id: number; stage: string; match_date: string | null; match_time: string | null; terrain: string | null; status: string;
   home_score: number | null; away_score: number | null;
   home_yellow_cards: number; home_red_cards: number; away_yellow_cards: number; away_red_cards: number;
@@ -110,7 +111,9 @@ export default function Home() {
       rows.push({ ...team, played: 0, won: 0, drawn: 0, lost: 0, gf: 0, ga: 0, points: 0, recent: [] });
       groups.set(team.poule_id, rows);
     }
-    const scheduledMatches = getPouleMatchSchedule(teams, matches.filter((match) => match.stage === 'poules'));
+    const scheduledMatches = sortPouleMatchesChronologically(
+      getPouleMatchSchedule(teams, matches.filter((match) => match.stage === 'poules'))
+    );
     for (const match of scheduledMatches) {
       if (match.status !== 'completed' || match.home_score === null || match.away_score === null) continue;
       const home = groups.get(match.home_team?.poule_id ?? -1)?.find((team) => team.id === match.home_team_id);

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Trash2 } from 'lucide-react';
-import { getTeams, getMatches, getPouleMatchSchedule, addTeam, deleteTeam, deleteTeamsByPoule } from '@/lib/tournament';
+import { getTeams, getMatches, getPouleMatchSchedule, sortPouleMatchesChronologically, addTeam, deleteTeam, deleteTeamsByPoule } from '@/lib/tournament';
 
 interface Team {
   id: number;
@@ -17,7 +17,11 @@ interface Match {
   home_score: number | null;
   away_score: number | null;
   status: string;
+  match_date: string | null;
+  match_time: string | null;
+  schedule_order?: number | null;
   created_at?: string;
+  schedule_round?: number;
 }
 
 interface Standing extends Team {
@@ -69,9 +73,11 @@ export default function Poule({ id, name, userId, qualifiedCount, terrain, onSav
 
   const recentCount = Math.max(teams.length - 1, 0);
   const teamIds = new Set(teams.map((team) => team.id));
-  const scheduledMatches = getPouleMatchSchedule(
-    teams,
-    matches.filter((match) => teamIds.has(match.home_team_id) && teamIds.has(match.away_team_id))
+  const scheduledMatches = sortPouleMatchesChronologically(
+    getPouleMatchSchedule(
+      teams,
+      matches.filter((match) => teamIds.has(match.home_team_id) && teamIds.has(match.away_team_id))
+    )
   );
   const standings: Standing[] = teams
     .map((team) => {
