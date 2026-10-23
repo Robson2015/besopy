@@ -110,8 +110,9 @@ export default function Home() {
       rows.push({ ...team, played: 0, won: 0, drawn: 0, lost: 0, gf: 0, ga: 0, points: 0, recent: [] });
       groups.set(team.poule_id, rows);
     }
-    for (const match of [...matches].sort((a, b) => (a.created_at || '').localeCompare(b.created_at || ''))) {
-      if (match.stage !== 'poules' || match.status !== 'completed' || match.home_score === null || match.away_score === null) continue;
+    const scheduledMatches = getPouleMatchSchedule(teams, matches.filter((match) => match.stage === 'poules'));
+    for (const match of scheduledMatches) {
+      if (match.status !== 'completed' || match.home_score === null || match.away_score === null) continue;
       const home = groups.get(match.home_team?.poule_id ?? -1)?.find((team) => team.id === match.home_team_id);
       const away = groups.get(match.away_team?.poule_id ?? -1)?.find((team) => team.id === match.away_team_id);
       if (!home || !away) continue;
@@ -215,7 +216,7 @@ export default function Home() {
                     <td className={`border-l-2 px-4 py-4 ${isQualified ? 'border-l-[#2165ff]' : 'border-l-transparent'}`}>{rank + 1}</td>
                     <td className="px-4 py-4"><div className="flex items-center gap-2.5"><span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-[#e8ebef] text-[10px] font-bold text-[#526174]">{team.name.slice(0, 2).toUpperCase()}</span><span className="font-medium text-[#26354a]">{team.name}</span>{isQualified && <span className="text-[9px] font-bold uppercase text-[#155eef]">Qualifie</span>}</div></td>
                     <td className="px-3 py-4 text-center">{team.played}</td><td className="px-3 py-4 text-center">{team.won}</td><td className="px-3 py-4 text-center">{team.drawn}</td><td className="px-3 py-4 text-center">{team.lost}</td><td className="px-3 py-4 text-center">{team.gf}</td><td className="px-3 py-4 text-center">{team.ga}</td><td className="px-3 py-4 text-center">{team.gf - team.ga > 0 ? '+' : ''}{team.gf - team.ga}</td><td className="px-4 py-4 text-center font-bold text-[#155eef]">{team.points}</td>
-                    <td className="px-4 py-4"><div className="flex justify-center gap-1">{Array.from({ length: recentCount }, (_, index) => team.recent.slice(-recentCount)[index]).map((result, index) => <span key={index} title={result === 'win' ? 'Victoire' : result === 'draw' ? 'Match nul' : result === 'loss' ? 'Defaite' : 'Aucun resultat'} className={`grid h-5 w-5 place-items-center rounded-full text-[10px] font-bold text-white ${result === 'win' ? 'bg-[#08a64b]' : result === 'draw' ? 'bg-[#9aa3b2]' : result === 'loss' ? 'bg-[#f33246]' : 'bg-[#e3e7ed]'}`}>{result === 'win' ? '✓' : result === 'draw' ? '−' : result === 'loss' ? '×' : '·'}</span>)}</div></td>
+                    <td className="px-4 py-4"><div className="flex justify-center gap-1">{(recentCount ? team.recent.slice(-recentCount) : []).map((result, index) => <span key={index} title={result === 'win' ? 'Victoire' : result === 'draw' ? 'Match nul' : 'Défaite'} className={`grid h-5 w-5 place-items-center rounded-full text-[10px] font-bold text-white ${result === 'win' ? 'bg-[#08a64b]' : result === 'draw' ? 'bg-[#9aa3b2]' : 'bg-[#f33246]'}`}>{result === 'win' ? '✓' : result === 'draw' ? '−' : '×'}</span>)}</div></td>
                   </tr>;
                 })}</tbody>
               </table></div>

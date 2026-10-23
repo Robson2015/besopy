@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Trash2 } from 'lucide-react';
-import { getTeams, getMatches, addTeam, deleteTeam, deleteTeamsByPoule } from '@/lib/tournament';
+import { getTeams, getMatches, getPouleMatchSchedule, addTeam, deleteTeam, deleteTeamsByPoule } from '@/lib/tournament';
 
 interface Team {
   id: number;
@@ -68,6 +68,11 @@ export default function Poule({ id, name, userId, qualifiedCount, terrain, onSav
   };
 
   const recentCount = Math.max(teams.length - 1, 0);
+  const teamIds = new Set(teams.map((team) => team.id));
+  const scheduledMatches = getPouleMatchSchedule(
+    teams,
+    matches.filter((match) => teamIds.has(match.home_team_id) && teamIds.has(match.away_team_id))
+  );
   const standings: Standing[] = teams
     .map((team) => {
       const standing: Standing = {
@@ -83,17 +88,11 @@ export default function Poule({ id, name, userId, qualifiedCount, terrain, onSav
         recentResults: [],
       };
 
-      matches
-        .filter((match) => match.status === 'completed')
-        .sort((first, second) => {
-          return new Date(first.created_at || 0).getTime() - new Date(second.created_at || 0).getTime();
-        })
-        .forEach((match) => {
+      scheduledMatches.forEach((match) => {
         const isHome = match.home_team_id === team.id;
         const isAway = match.away_team_id === team.id;
-        if (!isHome && !isAway || match.home_score === null || match.away_score === null) {
-          return;
-        }
+        if (!isHome && !isAway) return;
+        if (match.status !== 'completed' || match.home_score === null || match.away_score === null) return;
 
         const goalsFor = isHome ? match.home_score : match.away_score;
         const goalsAgainst = isHome ? match.away_score : match.home_score;
@@ -242,15 +241,15 @@ export default function Poule({ id, name, userId, qualifiedCount, terrain, onSav
                 <td className="px-3 py-3 text-center font-bold text-blue-700">{team.points}</td>
                 <td className="px-3 py-3">
                   <div className="flex justify-center gap-1">
-                    {Array.from({ length: recentCount }, (_, resultIndex) => team.recentResults[resultIndex]).map((result, resultIndex) => (
+                    {team.recentResults.map((result, resultIndex) => (
                       <span
                         key={`${team.id}-${resultIndex}`}
-                        title={result === 'win' ? 'Victoire' : result === 'draw' ? 'Nul' : result === 'loss' ? 'Defaite' : 'Aucun resultat'}
+                        title={result === 'win' ? 'Victoire' : result === 'draw' ? 'Nul' : 'Défaite'}
                         className={`flex h-5 w-5 items-center justify-center rounded-full text-[11px] font-bold text-white ${
-                          result === 'win' ? 'bg-green-600' : result === 'draw' ? 'bg-gray-400' : result === 'loss' ? 'bg-red-500' : 'bg-gray-300'
+                          result === 'win' ? 'bg-green-600' : result === 'draw' ? 'bg-gray-400' : 'bg-red-500'
                         }`}
                       >
-                        {result === 'win' ? '\u2713' : result === 'draw' ? '-' : result === 'loss' ? '\u00d7' : '\u00b7'}
+                        {result === 'win' ? '\u2713' : result === 'draw' ? '-' : '\u00d7'}
                       </span>
                     ))}
                   </div>
